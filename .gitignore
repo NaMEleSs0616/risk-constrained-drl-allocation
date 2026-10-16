@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Training runs (regenerable)
+runs/
+runs_real/
+wandb/
+
+# Synthetic study: keep summary tables/figures, drop models, pickles and logs
+outputs/models/
+outputs/*.pkl
+outputs/*.log
+
+# Market-data study: in progress; results committed once finished
+outputs_real/
+
+# Raw Yahoo Finance data is not redistributed - rebuild with scripts/download_data.py
+data/*.csv
+
+.DS_Store

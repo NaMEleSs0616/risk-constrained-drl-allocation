@@ -1,0 +1,19 @@
+# Core numerics
+numpy>=1.26
+pandas>=2.1
+scipy>=1.11
+scikit-learn>=1.3        # Ledoit-Wolf shrinkage covariance (MVO baseline)
+
+# RL stack
+gymnasium>=0.29.1
+torch>=2.2
+stable-baselines3>=2.3.0
+
+# Config, logging, plotting
+pyyaml>=6.0
+tensorboard>=2.15
+matplotlib>=3.8
+wandb>=0.16              # optional: only imported when logging.backend is "wandb" or "both"
+
+# Testing
+pytest>=8.0

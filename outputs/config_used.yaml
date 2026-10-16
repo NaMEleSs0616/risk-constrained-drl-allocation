@@ -1,0 +1,186 @@
+seed: 42
+experiment_name: ppo_risk_constrained
+output_dir: runs
+data:
+  source: synthetic
+  csv_path: null
+  assets:
+  - EQ_US
+  - EQ_EU
+  - EQ_EM
+  - BOND_UST
+  - COMMODITY
+  start_date: '2008-01-01'
+  synthetic:
+    n_periods: 3000
+    annual_drift:
+    - 0.02
+    - 0.1
+    annual_vol:
+    - 0.08
+    - 0.35
+    market_beta: 0.55
+    stress_beta: 0.85
+    stress_entry_prob: 0.008
+    stress_persistence: 0.97
+    stress_vol_multiplier: 2.5
+    stress_annual_drift: -0.35
+    signal_persistence: 0.97
+    signal_strength: 0.06
+    tail_df: 4
+    base_dollar_volume:
+    - 50000000.0
+    - 500000000.0
+features:
+  windows:
+  - 5
+  - 21
+  - 63
+  ofi_sigma_window: 21
+  normalization: rolling
+  zscore_window: 252
+  zscore_min_periods: 63
+  clip: 5.0
+environment:
+  initial_nav: 10000000.0
+  lookback: 20
+  episode_length: 252
+  random_start: true
+  long_only: true
+  action_transform: softmax
+  softmax_temperature: 3.0
+  max_gross_leverage: 1.0
+  bankruptcy_threshold: 0.1
+  portfolio_vol_window: 21
+  periods_per_year: 252
+  friction:
+    commission_bps: 1.0
+    slippage_bps: 2.0
+    temp_impact_coef: 0.15
+    perm_impact_coef: 0.05
+    perm_impact_halflife: 5.0
+    adv_window: 20
+    vol_window: 20
+    max_participation: 0.1
+    min_adv: 10000.0
+    short_borrow_bps_annual: 50.0
+    cash_rate_annual: 0.0
+reward:
+  alpha: 0.95
+  cvar_window: 63
+  cvar_min_periods: 20
+  lambda_cvar: 0.05
+  lambda_drawdown: 0.5
+  return_type: log
+  reward_scale: 100.0
+  clip: 10.0
+  cvar_floor_zero: true
+model:
+  encoder: cnn
+  hidden_dim: 32
+  n_layers: 2
+  kernel_size: 3
+  dropout: 0.0
+  use_attention: true
+  n_heads: 4
+  features_dim: 128
+  net_arch:
+    pi:
+    - 128
+    - 64
+    vf:
+    - 128
+    - 64
+  activation: tanh
+  log_std_init: -0.5
+  ortho_init: true
+  share_features_extractor: true
+ppo:
+  total_timesteps: 300000
+  n_envs: 8
+  vec_env: dummy
+  learning_rate: 0.0003
+  lr_schedule: linear
+  n_steps: 512
+  batch_size: 256
+  n_epochs: 10
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_range: 0.2
+  ent_coef: 0.0
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  target_kl: 0.03
+  normalize_obs: false
+  normalize_reward: true
+  device: auto
+training:
+  train_fraction: 0.7
+  val_fraction: 0.15
+  embargo: 5
+  checkpoint_freq: 50000
+  eval_freq: 20000
+  n_eval_episodes: 1
+  log_interval: 1
+  logger: tensorboard
+  wandb:
+    project: risk-constrained-ppo
+    entity: null
+    mode: online
+    tags: []
+backtest:
+  train_window: 1008
+  test_window: 252
+  step: 252
+  embargo: 5
+  expanding: true
+  validation_fraction: 0.15
+  timesteps_per_fold: 150000
+  warm_start: true
+  deterministic: true
+  risk_free_rate: 0.0
+  benchmark_rebalance_every: 21
+  save_plots: true
+experiments:
+  output_dir: outputs
+  n_folds: 3
+  test_window: 252
+  train_window: 1008
+  embargo: 5
+  validation_fraction: 0.15
+  timesteps: 150000
+  seeds:
+  - 0
+  - 1
+  - 2
+  n_workers: 4
+  torch_threads: 2
+  deterministic: true
+  risk_free_rate: 0.0
+  variants:
+    A_vanilla:
+      label: PPO-A Vanilla (l1=0, l2=0)
+      lambda_cvar: 0.0
+      lambda_drawdown: 0.0
+    B_cvar_only:
+      label: PPO-B CVaR (l1=1, l2=0)
+      lambda_cvar: 1.0
+      lambda_drawdown: 0.0
+    C_drawdown_only:
+      label: PPO-C Drawdown (l1=0, l2=1)
+      lambda_cvar: 0.0
+      lambda_drawdown: 1.0
+    D_full:
+      label: PPO-D Full (l1=1, l2=1)
+      lambda_cvar: 1.0
+      lambda_drawdown: 1.0
+    E_full_calibrated:
+      label: PPO-E Full calibrated (l1=0.05, l2=0.5)
+      lambda_cvar: 0.05
+      lambda_drawdown: 0.5
+  baselines:
+    rebalance_every: 21
+    estimation_window: 252
+    mvo_risk_aversion: 5.0
+    mvo_mean_shrinkage: 0.5
+    max_weight: 1.0
