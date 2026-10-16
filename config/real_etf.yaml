@@ -1,0 +1,210 @@
+# =============================================================================
+# Risk-Constrained Dynamic Portfolio Allocation with PPO
+# =============================================================================
+seed: 42
+experiment_name: ppo_risk_constrained_etf
+output_dir: runs_real
+
+# -----------------------------------------------------------------------------
+# Asset universe & data source
+# -----------------------------------------------------------------------------
+data:
+  source: csv
+  csv_path: data/etf_daily.csv    # scripts/download_data.py (Yahoo Finance, split/dividend-adjusted)
+  assets: [SPY, EFA, EEM, IEF, TLT, LQD, HYG, GLD, DBC, VNQ]
+  start_date: "2007-04-11"        # HYG inception: first date with all ten assets
+  # Named market-stress episodes (inclusive; peak-to-trough of the S&P 500 unless noted).
+  # Used only to label days for regime-conditional analysis - never observed by any strategy.
+  stress_periods:
+    - ["2007-10-09", "2009-03-09"]   # global financial crisis
+    - ["2010-04-23", "2010-07-02"]   # flash crash / euro sovereign stress
+    - ["2011-07-22", "2011-10-03"]   # US downgrade / euro crisis
+    - ["2015-08-18", "2015-09-29"]   # China devaluation sell-off
+    - ["2015-12-29", "2016-02-11"]   # oil / China sell-off
+    - ["2018-01-26", "2018-02-08"]   # volatility shock ("Volmageddon")
+    - ["2018-09-21", "2018-12-24"]   # Q4 2018 sell-off
+    - ["2020-02-19", "2020-03-23"]   # COVID-19 crash
+    - ["2022-01-03", "2022-10-12"]   # 2022 inflation / rates bear market (stocks and bonds)
+    - ["2025-02-19", "2025-04-08"]   # 2025 tariff shock
+
+# -----------------------------------------------------------------------------
+# Feature engineering (all transforms are causal: value at t uses data <= t)
+# -----------------------------------------------------------------------------
+features:
+  windows: [5, 21, 63]          # multi-timeframe look-backs (week / month / quarter)
+  ofi_sigma_window: 21          # vol estimate used by bulk-volume classification
+  normalization: rolling        # rolling | expanding
+  zscore_window: 252
+  zscore_min_periods: 63
+  clip: 5.0
+
+# -----------------------------------------------------------------------------
+# Trading environment & market frictions
+# -----------------------------------------------------------------------------
+environment:
+  initial_nav: 1.0e7
+  lookback: 20                  # length of the feature window fed to the encoder
+  episode_length: 252           # null -> run to end of data range
+  random_start: true
+  long_only: true
+  action_transform: softmax     # softmax (long-only, with cash logit) | projection
+  softmax_temperature: 3.0
+  max_gross_leverage: 1.0
+  bankruptcy_threshold: 0.10    # terminate when NAV < threshold * initial NAV
+  portfolio_vol_window: 21
+  periods_per_year: 252
+  friction:
+    commission_bps: 1.0         # proportional fee on traded notional
+    slippage_bps: 2.0           # half-spread crossed on every trade
+    temp_impact_coef: 0.15      # eta:   temporary  sqrt impact  eta  * sigma * sqrt(|q|/ADV)
+    perm_impact_coef: 0.05      # gamma: permanent  sqrt impact  gamma* sigma * sqrt(|q|/ADV)
+    perm_impact_halflife: 5.0   # periods; null -> no decay (truly permanent)
+    adv_window: 20
+    vol_window: 20
+    max_participation: 0.10     # max fraction of ADV tradable per period; null -> no cap
+    min_adv: 1.0e4
+    short_borrow_bps_annual: 50.0
+    cash_rate_annual: 0.0
+
+# -----------------------------------------------------------------------------
+# Risk-adjusted reward:  R_t = r_t - lambda_cvar * CVaR_alpha - lambda_dd * D_t^2
+# -----------------------------------------------------------------------------
+reward:
+  alpha: 0.95
+  cvar_window: 63
+  cvar_min_periods: 20
+  lambda_cvar: 0.05
+  lambda_drawdown: 0.5
+  return_type: log              # log | simple  (the return term of the reward)
+  reward_scale: 100.0
+  clip: 10.0
+  cvar_floor_zero: true         # never reward a "negative" CVaR (all-gain windows)
+
+# -----------------------------------------------------------------------------
+# Policy network
+# -----------------------------------------------------------------------------
+model:
+  encoder: cnn                  # cnn | lstm | mlp  (shared per-asset temporal encoder)
+  hidden_dim: 32
+  n_layers: 2
+  kernel_size: 3
+  dropout: 0.0
+  use_attention: true           # cross-asset self-attention over asset embeddings
+  n_heads: 4
+  features_dim: 128
+  net_arch:
+    pi: [128, 64]
+    vf: [128, 64]
+  activation: tanh              # tanh | relu | gelu
+  log_std_init: -0.5
+  ortho_init: true
+  share_features_extractor: true
+
+# -----------------------------------------------------------------------------
+# PPO
+# -----------------------------------------------------------------------------
+ppo:
+  total_timesteps: 300000
+  n_envs: 8
+  vec_env: dummy                # dummy | subproc
+  learning_rate: 3.0e-4
+  lr_schedule: linear           # linear | constant
+  n_steps: 512
+  batch_size: 256
+  n_epochs: 10
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_range: 0.2
+  ent_coef: 0.0
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  target_kl: 0.03
+  normalize_obs: false          # features are already causally z-scored
+  normalize_reward: true
+  device: auto
+
+# -----------------------------------------------------------------------------
+# Single train / val / test split (main.py train | evaluate)
+# -----------------------------------------------------------------------------
+training:
+  train_fraction: 0.70
+  val_fraction: 0.15
+  embargo: 5                    # periods dropped between consecutive splits
+  checkpoint_freq: 50000
+  eval_freq: 20000
+  n_eval_episodes: 1
+  log_interval: 1
+  logger: tensorboard           # tensorboard | wandb | both | none
+  wandb:
+    project: risk-constrained-ppo
+    entity: null
+    mode: online                # online | offline | disabled
+    tags: []
+
+# -----------------------------------------------------------------------------
+# Walk-forward backtest (main.py backtest)
+# -----------------------------------------------------------------------------
+backtest:
+  train_window: 1008            # ~4 years
+  test_window: 252              # ~1 year
+  step: 252
+  embargo: 5
+  expanding: true
+  validation_fraction: 0.15     # tail of each train window used for model selection
+  timesteps_per_fold: 150000
+  warm_start: true              # initialise each fold from the previous fold's model
+  deterministic: true
+  risk_free_rate: 0.0
+  benchmark_rebalance_every: 21
+  save_plots: true
+
+# -----------------------------------------------------------------------------
+# Market-data walk-forward study (scripts/run_real_experiments.py)
+# -----------------------------------------------------------------------------
+experiments:
+  output_dir: outputs_real
+  n_folds: 14                   # rolling 1-year test windows, end-anchored (~Oct 2012 -> Oct 2026)
+  test_window: 252
+  train_window: 1008            # rolling 4-year training window
+  embargo: 5
+  initial_timesteps: 100000     # fold 0, trained from scratch
+  finetune_timesteps: 25000     # every later fold: fine-tune the previous fold's model
+  seeds: [0, 1, 2]
+  n_workers: 4
+  torch_threads: 2
+  deterministic: true
+  risk_free_rate: 0.0
+  variants:
+    A_vanilla:
+      label: "PPO-A Vanilla (l1=0, l2=0)"
+      lambda_cvar: 0.0
+      lambda_drawdown: 0.0
+      vol_target_overlay: 0.10   # also evaluate A with a post-hoc 10% vol-target overlay
+    D_full:
+      label: "PPO-D Full (l1=1, l2=1)"
+      lambda_cvar: 1.0
+      lambda_drawdown: 1.0
+    E_full_calibrated:
+      label: "PPO-E Full calibrated (l1=0.05, l2=0.5)"
+      lambda_cvar: 0.05
+      lambda_drawdown: 0.5
+    T_turnover:
+      label: "PPO-T Turnover-regularised (l1=0, l2=0)"
+      lambda_cvar: 0.0
+      lambda_drawdown: 0.0
+      lambda_turnover: 0.001     # 10 bp per unit of one-way turnover (~3x the realised cost)
+    R_rcpo:
+      label: "PPO-R RCPO adaptive (l1=auto, l2=auto)"
+      lambda_cvar: 0.0
+      lambda_drawdown: 0.0
+      rcpo:
+        cvar_target: 0.015       # average daily CVaR95 <= 1.5%
+        drawdown_target: 0.005   # average squared drawdown <= 0.005 (RMS drawdown ~7%)
+        lr: 0.2
+        lambda_max: 5.0
+  baselines:
+    rebalance_every: 21
+    estimation_window: 252
+    mvo_risk_aversion: 5.0
+    mvo_mean_shrinkage: 0.5
+    max_weight: 1.0

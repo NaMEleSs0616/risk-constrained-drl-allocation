@@ -1,0 +1,11 @@
+[project]
+name = "risk-constrained-ppo"
+version = "0.1.0"
+description = "Risk-constrained dynamic portfolio allocation with PPO, CVaR/drawdown penalties and market frictions"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]
