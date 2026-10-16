@@ -1,0 +1,131 @@
+{
+  "source": "Yahoo Finance via yfinance (auto_adjust=True: split- and distribution-adjusted OHLC)",
+  "downloaded_at": "2026-10-15T20:09:59",
+  "tickers": [
+    "SPY",
+    "EFA",
+    "EEM",
+    "IEF",
+    "TLT",
+    "LQD",
+    "HYG",
+    "GLD",
+    "DBC",
+    "VNQ"
+  ],
+  "start": "2006-01-01",
+  "end": "2026-10-15",
+  "rows": 51939,
+  "quality": {
+    "DBC": {
+      "first": "2006-02-06",
+      "last": "2026-10-14",
+      "rows": 5205,
+      "non_positive_close": 0,
+      "missing_close": 0,
+      "zero_volume_days": 0,
+      "max_abs_daily_return": 0.07944421255831913,
+      "ann_return_pct": 2.7071661466572916,
+      "ann_vol_pct": 19.30911940302573
+    },
+    "EEM": {
+      "first": "2006-01-03",
+      "last": "2026-10-14",
+      "rows": 5228,
+      "non_positive_close": 0,
+      "missing_close": 0,
+      "zero_volume_days": 0,
+      "max_abs_daily_return": 0.22769884120369088,
+      "ann_return_pct": 5.761663013414631,
+      "ann_vol_pct": 27.945101113723744
+    },
+    "EFA": {
+      "first": "2006-01-03",
+      "last": "2026-10-14",
+      "rows": 5228,
+      "non_positive_close": 0,
+      "missing_close": 0,
+      "zero_volume_days": 0,
+      "max_abs_daily_return": 0.1588764369072142,
+      "ann_return_pct": 5.5325955372285796,
+      "ann_vol_pct": 21.28102946584884
+    },
+    "GLD": {
+      "first": "2006-01-03",
+      "last": "2026-10-14",
+      "rows": 5228,
+      "non_positive_close": 0,
+      "missing_close": 0,
+      "zero_volume_days": 0,
+      "max_abs_daily_return": 0.11290530102327678,
+      "ann_return_pct": 9.892423005866814,
+      "ann_vol_pct": 18.507036800531942
+    },
+    "HYG": {
+      "first": "2007-04-11",
+      "last": "2026-10-14",
+      "rows": 4910,
+      "non_positive_close": 0,
+      "missing_close": 0,
+      "zero_volume_days": 0,
+      "max_abs_daily_return": 0.12268841738603742,
+      "ann_return_pct": 4.752306891685332,
+      "ann_vol_pct": 10.814485024842625
+    },
+    "IEF": {
+      "first": "2006-01-03",
+      "last": "2026-10-14",
+      "rows": 5228,
+      "non_positive_close": 0,
+      "missing_close": 0,
+      "zero_volume_days": 0,
+      "max_abs_daily_return": 0.03426125146077297,
+      "ann_return_pct": 3.017050489499784,
+      "ann_vol_pct": 6.808211642232505
+    },
+    "LQD": {
+      "first": "2006-01-03",
+      "last": "2026-10-14",
+      "rows": 5228,
+      "non_positive_close": 0,
+      "missing_close": 0,
+      "zero_volume_days": 0,
+      "max_abs_daily_return": 0.09767701762403891,
+      "ann_return_pct": 3.830939443631265,
+      "ann_vol_pct": 8.592952293798332
+    },
+    "SPY": {
+      "first": "2006-01-03",
+      "last": "2026-10-14",
+      "rows": 5228,
+      "non_positive_close": 0,
+      "missing_close": 0,
+      "zero_volume_days": 0,
+      "max_abs_daily_return": 0.14519755369470522,
+      "ann_return_pct": 11.093008346910004,
+      "ann_vol_pct": 19.1826082873894
+    },
+    "TLT": {
+      "first": "2006-01-03",
+      "last": "2026-10-14",
+      "rows": 5228,
+      "non_positive_close": 0,
+      "missing_close": 0,
+      "zero_volume_days": 0,
+      "max_abs_daily_return": 0.07519537512767882,
+      "ann_return_pct": 2.515104836051485,
+      "ann_vol_pct": 14.731780396468126
+    },
+    "VNQ": {
+      "first": "2006-01-03",
+      "last": "2026-10-14",
+      "rows": 5228,
+      "non_positive_close": 0,
+      "missing_close": 0,
+      "zero_volume_days": 0,
+      "max_abs_daily_return": 0.1951370589716941,
+      "ann_return_pct": 6.266823568297286,
+      "ann_vol_pct": 28.832607253410384
+    }
+  }
+}
