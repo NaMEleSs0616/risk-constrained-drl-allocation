@@ -1,0 +1,17 @@
+strategy,versus,diff,ci_low,ci_high,p_value
+"PPO-A Vanilla (l1=0, l2=0) + vol target 10%","PPO-A Vanilla (l1=0, l2=0)",-0.176975,-0.334783,-0.046631,0.017000
+"PPO-D Full (l1=1, l2=1)","PPO-A Vanilla (l1=0, l2=0)",-0.046645,-0.224116,0.148810,0.638000
+"PPO-E Full calibrated (l1=0.05, l2=0.5)","PPO-A Vanilla (l1=0, l2=0)",-0.017756,-0.168992,0.149299,0.823500
+"PPO-T Turnover-regularised (l1=0, l2=0)","PPO-A Vanilla (l1=0, l2=0)",-0.033801,-0.173908,0.136397,0.673500
+"PPO-R RCPO adaptive (l1=auto, l2=auto)","PPO-A Vanilla (l1=0, l2=0)",-0.060800,-0.191841,0.084771,0.386000
+"PPO-A Vanilla (l1=0, l2=0)",Equal Weight (1/N),-0.241601,-0.511134,0.015474,0.072500
+"PPO-A Vanilla (l1=0, l2=0) + vol target 10%",Equal Weight (1/N),-0.418577,-0.671173,-0.186889,0.000000
+"PPO-D Full (l1=1, l2=1)",Equal Weight (1/N),-0.288246,-0.455008,-0.133642,0.000500
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",Equal Weight (1/N),-0.259357,-0.439954,-0.087064,0.003500
+"PPO-T Turnover-regularised (l1=0, l2=0)",Equal Weight (1/N),-0.275402,-0.483340,-0.082420,0.007000
+"PPO-R RCPO adaptive (l1=auto, l2=auto)",Equal Weight (1/N),-0.302401,-0.540559,-0.073632,0.012000
+Buy & Hold (1/N),Equal Weight (1/N),0.012440,-0.019361,0.040168,0.395500
+MVO (Ledoit-Wolf),Equal Weight (1/N),0.106152,-0.384982,0.584585,0.676500
+Risk Parity (ERC),Equal Weight (1/N),-0.044164,-0.178658,0.084564,0.520000
+HRP,Equal Weight (1/N),-0.181735,-0.395596,0.027336,0.100000
+Untrained policy (1/(N+1) incl. cash),Equal Weight (1/N),0.008579,-0.002160,0.020880,0.139000

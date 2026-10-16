@@ -17,7 +17,10 @@ src/
 scripts/run_experiments.py    lambda ablation (models A-E) x seeds + baselines, 3-fold rolling walk-forward (parallel)
 scripts/checkpoint_analysis.py selection-free check: every agent at 50k/100k/150k steps + untrained-policy control
 scripts/make_figures.py        paper figures from outputs/  ->  paper/figures/
-scripts/build_paper.py         fills paper tables from outputs/ CSVs  ->  paper/paper.html
+scripts/build_paper.py         fills paper tables from results CSVs, numbers tables/figures -> paper/paper.html
+scripts/download_data.py       daily adjusted OHLCV for the 10-ETF universe (Yahoo Finance) -> data/
+scripts/run_real_experiments.py  14-fold warm-started walk-forward study on ETFs (A, D, E, T, RCPO, overlay)
+scripts/extra_analysis.py      gross-of-cost, tracking, timing-vs-tilt, de-risking, RCPO multiplier paths
 main.py                       CLI: train | evaluate | backtest | experiments
 tests/                        pytest suite (env accounting, reward/CVaR, metrics, baselines, model)
 ```
@@ -26,7 +29,7 @@ tests/                        pytest suite (env accounting, reward/CVaR, metrics
 
 ```bash
 pip install -r requirements.txt
-pytest                                   # full test suite
+pytest                                   # 135 tests
 python main.py experiments --smoke       # ~30 s end-to-end pipeline check
 python scripts/run_experiments.py        # full ablation study -> outputs/
 tensorboard --logdir outputs/models      # training curves
@@ -43,6 +46,17 @@ python scripts/run_experiments.py --variants A_vanilla D_full --timesteps 300000
 ```
 
 To use real data, set `data.source: csv` and `data.csv_path`. The CSV must be in long format with columns `date, ticker, close, volume`; `open`, `high` and `low` are optional.
+
+## Headline results
+
+On 10 liquid multi-asset ETFs over 14 walk-forward years (Oct 2012 to Oct 2026), net of realistic frictions:
+
+- **No PPO variant beats 1/N after costs.** PPO Sharpe ratios are 0.33–0.38, against 0.65 for 1/N and 0.75 for Ledoit–Wolf MVO. An untrained policy (equal weight on the assets and cash) scores 0.66.
+- **Before costs, PPO beats 1/N.** Gross Sharpe ratios are 0.70–0.81. The edge comes from day-to-day timing, not static tilts, but trading it means 37–49% turnover per day, which costs 3–4.5% of NAV a year.
+- **Drawdown penalties lower tail risk relative to vanilla PPO.** Max drawdown falls from 22% to about 19–20%, at no significant Sharpe cost.
+- **The agents don't learn to de-risk in stress periods.** RCPO's constraints rarely bound, and the vol-target overlay lowers Sharpe.
+
+The simulated-market study (`outputs/`) confirms the regularisation reading and shows that more training lowers out-of-sample performance. The full write-up is in `paper/paper.html`.
 
 ## Design notes
 
