@@ -14,8 +14,10 @@ outputs/models/
 outputs/*.pkl
 outputs/*.log
 
-# Market-data study: in progress; results committed once finished
-outputs_real/
+# Market-data study: keep summary tables/figures, drop models, pickles and logs
+outputs_real/models/
+outputs_real/*.pkl
+outputs_real/*.log
 
 # Raw Yahoo Finance data is not redistributed - rebuild with scripts/download_data.py
 data/*.csv
