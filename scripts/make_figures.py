@@ -32,12 +32,15 @@ plt.rcParams.update({
 
 # Okabe-Ito (colour-blind safe) for the PPO variants; greys / muted for baselines.
 RL_COLORS = ["#0072B2", "#E69F00", "#009E73", "#D55E00", "#CC79A7", "#56B4E9"]
-BASE_COLORS = ["#4D4D4D", "#8C8C8C", "#B07AA1", "#9C755F", "#76B7B2"]
+BASE_COLORS = ["#4D4D4D", "#8C8C8C", "#B07AA1", "#9C755F", "#76B7B2", "#000000"]
 
 
 def short(name: str) -> str:
     """Compact display label (``PPO-A Vanilla (l1=0, l2=0)`` -> ``PPO-A Vanilla``)."""
-    return name.split(" (")[0] if name.startswith("PPO") else name
+    if not name.startswith("PPO"):
+        return name
+    base = name.split(" (")[0]
+    return f"{base} + vol target" if "+ vol target" in name else base
 
 
 def colors(names: Sequence[str], rl: Sequence[str]) -> dict[str, str]:
@@ -86,10 +89,10 @@ def fig_equity(rec: dict, out: Path, col: dict[str, str]) -> None:
 
 
 def fig_ablation(seed_metrics: pd.DataFrame, rl: list[str], out: Path, col: dict[str, str]) -> None:
-    panels = [("sharpe", "Sharpe ratio"), ("max_drawdown_pct", "Max drawdown (%)"),
-              ("cvar_95_pct", "Daily CVaR$_{95}$ (%)"), ("avg_daily_turnover", "Avg daily turnover")]
+    panels = [("sharpe", "Sharpe"), ("max_drawdown_pct", "MaxDD (%)"),
+              ("cvar_95_pct", "CVaR$_{95}$ (%)"), ("avg_daily_turnover", "Turnover / day")]
     order = list(dict.fromkeys(seed_metrics["strategy"]))
-    fig, axes = plt.subplots(1, 4, figsize=(7.2, 2.9))
+    fig, axes = plt.subplots(1, 4, figsize=(7.6, 0.28 * len(order) + 1.0))
     for ax, (m, title) in zip(axes, panels):
         g = seed_metrics.groupby("strategy", sort=False)[m]
         mean, std = g.mean().reindex(order), g.std(ddof=1).reindex(order).fillna(0.0)
@@ -127,15 +130,18 @@ def fig_regime(regime: pd.DataFrame, out: Path, col: dict[str, str]) -> None:
         ax.invert_yaxis()
         ax.set_title(title)
         ax.grid(axis="y", alpha=0)
-    axes[1].legend(["calm", "stress"], frameon=False, loc="lower right")
+    from matplotlib.patches import Patch
+
+    axes[1].legend([Patch(facecolor="#999999"), Patch(facecolor="#999999", hatch="///", edgecolor="white")],
+                   ["calm", "stress"], frameon=False, loc="lower right")
     fig.tight_layout()
     fig.savefig(out / "fig_regime.png")
     plt.close(fig)
 
 
-def load_training_curves(models_dir: Path, labels: dict[str, str]) -> pd.DataFrame:
+def load_training_curves(models_dir: Path, labels: dict[str, str], fold_glob: str = "fold_*") -> pd.DataFrame:
     rows = []
-    for csv in models_dir.glob("*/seed_*/fold_*/logs/progress.csv"):
+    for csv in models_dir.glob(f"*/seed_*/{fold_glob}/logs/progress.csv"):
         key = csv.parts[-5]
         try:
             d = pd.read_csv(csv)
@@ -167,8 +173,9 @@ def fig_training(curves: pd.DataFrame, rl: list[str], out: Path, col: dict[str, 
             ax.fill_between(m.index / 1e3, m - s, m + s, color=col[name], alpha=0.12, lw=0)
         ax.set_title(t)
         ax.set_xlabel("Timesteps (k)")
-    np.atleast_1d(axes)[0].legend(frameon=False, fontsize=7)
-    fig.tight_layout()
+    handles, labels = np.atleast_1d(axes)[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=min(len(labels), 5), frameon=False, fontsize=7)
+    fig.tight_layout(rect=(0, 0.1, 1, 1))
     fig.savefig(out / "fig_training.png")
     plt.close(fig)
 
@@ -179,7 +186,8 @@ def fig_allocation(rec: dict, names: Sequence[str], out: Path) -> None:
     if not names:
         return
     fig, axes = plt.subplots(len(names), 1, figsize=(7.2, 1.6 * len(names) + 0.4), sharex=True)
-    palette = ["#0072B2", "#E69F00", "#009E73", "#CC79A7", "#56B4E9", "#D55E00", "#F0E442"]
+    palette = ["#0072B2", "#E69F00", "#009E73", "#CC79A7", "#56B4E9", "#D55E00", "#F0E442",
+               "#7F3C8D", "#8C564B", "#1F3B73", "#E73F74", "#80BA5A"]
     for ax, name in zip(np.atleast_1d(axes), names):
         df = stitched[name][min(stitched[name])]
         wcols = [c for c in df.columns if c.startswith("w_")]
@@ -189,8 +197,9 @@ def fig_allocation(rec: dict, names: Sequence[str], out: Path) -> None:
         ax.set_ylim(0, 1)
         ax.set_ylabel("Weight")
         ax.set_title(f"{short(name)} (seed {min(stitched[name])})", loc="left")
-    np.atleast_1d(axes)[0].legend(ncol=len(stack), frameon=False, loc="upper center",
-                                  bbox_to_anchor=(0.5, 1.45), fontsize=7)
+    ncol = len(stack) if len(stack) <= 6 else (len(stack) + 1) // 2
+    np.atleast_1d(axes)[0].legend(ncol=ncol, frameon=False, loc="upper center",
+                                  bbox_to_anchor=(0.5, 1.45 if ncol == len(stack) else 1.7), fontsize=7)
     fig.tight_layout()
     fig.savefig(out / "fig_allocation.png")
     plt.close(fig)
@@ -235,10 +244,36 @@ def fig_checkpoints(res: Path, out: Path, col: dict[str, str], rl: list[str]) ->
     plt.close(fig)
 
 
+def fig_gross_net(res: Path, out: Path, col: dict[str, str]) -> None:
+    path = res / "gross_and_tracking.csv"
+    if not path.exists():
+        return
+    g = pd.read_csv(path)
+    fig, ax = plt.subplots(figsize=(7.2, 2.9))
+    y = np.arange(len(g))
+    ax.barh(y + 0.2, g["gross_sharpe"], height=0.38, color=[col.get(n, "#999") for n in g["strategy"]],
+            alpha=0.45, label="before costs")
+    ax.barh(y - 0.2, g["net_sharpe"], height=0.38, color=[col.get(n, "#999") for n in g["strategy"]],
+            label="after costs")
+    ew = g.loc[g["strategy"] == "Equal Weight (1/N)", "net_sharpe"]
+    if not ew.empty:
+        ax.axvline(float(ew.iloc[0]), color="k", ls="--", lw=0.8)
+    ax.set_yticks(y)
+    ax.set_yticklabels([short(n) for n in g["strategy"]])
+    ax.invert_yaxis()
+    ax.set_xlabel("Sharpe ratio (dark: after costs, light: before costs; dashed: 1/N)")
+    ax.grid(axis="y", alpha=0)
+    fig.tight_layout()
+    fig.savefig(out / "fig_gross_net.png")
+    plt.close(fig)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--results", default="outputs")
     p.add_argument("--out", default="paper/figures")
+    p.add_argument("--training-folds", default="fold_*", help="glob of fold dirs for training curves")
+    p.add_argument("--alloc", nargs="*", default=["PPO-A", "PPO-D", "PPO-E"], help="label prefixes to plot")
     args = p.parse_args(argv)
     res, out = Path(args.results), Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -258,8 +293,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     cfg = yaml.safe_load((res / "config_used.yaml").read_text())
     labels = {k.lower(): v.get("label", k) for k, v in cfg["experiments"]["variants"].items()}
-    fig_training(load_training_curves(res / "models", labels), rl, out, col)
-    fig_allocation(rec, [rl[0], rl[min(3, len(rl) - 1)], rl[-1]] if rl else [], out)
+    fig_training(load_training_curves(res / "models", labels, args.training_folds),
+                 [n for n in rl if "+ vol" not in n], out, col)
+    alloc = [next((n for n in rl if n.startswith(pfx) and "+ vol" not in n), None) for pfx in args.alloc]
+    fig_allocation(rec, [a for a in alloc if a], out)
+    fig_gross_net(res, out, col)
     fig_cost(seed_metrics, out, col, rl)
     fig_checkpoints(res, out, col, rl)
     print(f"Figures written to {out}: {sorted(p.name for p in out.glob('*.png'))}")
