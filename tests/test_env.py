@@ -8,6 +8,7 @@ from gymnasium.utils.env_checker import check_env
 
 from src.environment import (
     EnvConfig,
+    FrictionConfig,
     PortfolioEnv,
     project_to_capped_simplex,
     project_to_l1_ball,
@@ -400,3 +401,86 @@ def test_gross_equals_net_plus_cost_under_next_open(make_env) -> None:
     _, _, _, _, info = env.step_with_weights(np.array([0.5, 0.3, 0.2]))
     gross_nav = env.nav + info["costs"]["total"] * 1.0  # cash earns 0, so costs reduce NAV one-for-one
     assert info["portfolio_return"] + info["cost"] == pytest.approx(gross_nav / nav_t - 1.0, rel=1e-9)
+
+
+# --------------------------------------------------------------------- next-open verification suite
+def _tiny_env(close, open_, commission_bps=0.0, slippage_bps=0.0, **kw):
+    """Hand-built 2-asset market; features are irrelevant (zeros), lookback 1."""
+    close = np.asarray(close, float)
+    open_ = np.asarray(open_, float)
+    T, N = close.shape
+    fr = FrictionConfig(commission_bps=commission_bps, slippage_bps=slippage_bps, temp_impact_coef=0.0,
+                        perm_impact_coef=0.0, max_participation=None, short_borrow_bps_annual=0.0)
+    cfg = EnvConfig(initial_nav=1_000_000.0, lookback=1, episode_length=None, random_start=False,
+                    execution="next_open", friction=fr, **kw)
+    return PortfolioEnv(np.zeros((T, N, 1), np.float32), close, np.full((T, N), 1e9), config=cfg,
+                        start_index=0, open_prices=open_)
+
+
+def test_manual_two_asset_example() -> None:
+    """Every number below is computed by hand (plain arithmetic), not by environment code."""
+    close = [[100.0, 50.0], [102.0, 49.0], [101.0, 50.0]]
+    open_ = [[100.0, 50.0], [101.0, 49.5], [102.5, 48.8]]
+    env = _tiny_env(close, open_, commission_bps=10.0)
+    env.reset()
+    nav0, c = 1_000_000.0, 0.0010
+    # Day 0 close: decide w = (0.6, 0.3). Post-cost sizing at decision prices:
+    # NAV_eff = NAV0 / (1 + c * 0.9); shares = w * NAV_eff / close_0.
+    nav_eff = nav0 / (1 + c * 0.9)
+    sh = np.array([0.6 * nav_eff / 100.0, 0.3 * nav_eff / 50.0])
+    # Fill at day-1 open: notional = shares * open_1; commission on executed notional.
+    notional = sh * np.array([101.0, 49.5])
+    commission = c * notional.sum()
+    cash = nav0 - notional.sum() - commission
+    nav1 = cash + sh @ np.array([102.0, 49.0])
+    _, _, _, _, info = env.step_with_weights(np.array([0.6, 0.3]))
+    np.testing.assert_allclose(info["order_shares"], sh, rtol=1e-12)
+    assert info["costs"]["commission"] == pytest.approx(commission, rel=1e-12)
+    assert env.cash == pytest.approx(cash, abs=1e-3)          # to a tenth of a cent
+    assert info["nav"] == pytest.approx(nav1, abs=1e-3)
+    assert info["portfolio_return"] == pytest.approx(nav1 / nav0 - 1.0, rel=1e-12)
+    # Day 1 close: hold. Overnight to day-2 open then intraday to day-2 close; no order, no cost.
+    nav_open2 = cash + sh @ np.array([102.5, 48.8])
+    nav2 = cash + sh @ np.array([101.0, 50.0])
+    _, _, _, _, info = env.step_with_weights(None)
+    assert info["nav_pre_trade"] == pytest.approx(nav_open2, abs=1e-3)  # overnight move recognised
+    assert info["nav"] == pytest.approx(nav2, abs=1e-3)
+    assert info["costs"]["total"] == 0.0 and info["portfolio_return"] == pytest.approx(nav2 / nav1 - 1.0, rel=1e-12)
+
+
+def test_overnight_gap_applies_to_existing_positions(make_env) -> None:
+    env = make_env(execution="next_open")
+    env.reset(seed=0)
+    env.step_with_weights(np.array([0.5, 0.5, 0.0]))
+    h, cash, t = env.holdings.copy(), env.cash, env.t
+    _, _, _, _, info = env.step_with_weights(None)
+    assert info["nav_pre_trade"] == pytest.approx(cash + h @ env.open_prices[t + 1], rel=1e-12)
+    assert info["nav"] == pytest.approx(cash + h @ env.prices[t + 1], rel=1e-12)
+
+
+def test_costs_charged_on_executed_quantities(make_env) -> None:
+    env = make_env(execution="next_open", friction={"commission_bps": 7.0, "slippage_bps": 3.0})
+    env.reset(seed=0)
+    t = env.t
+    _, _, _, _, info = env.step_with_weights(np.array([0.4, 0.3, 0.2]))
+    executed = np.abs(info["order_shares"] * env.open_prices[t + 1]).sum()
+    assert info["costs"]["commission"] == pytest.approx(7e-4 * executed, rel=1e-12)
+    assert info["costs"]["slippage"] == pytest.approx(3e-4 * executed, rel=1e-12)
+    assert info["turnover"] == pytest.approx(executed / info["nav_pre_trade"], rel=1e-12)
+
+
+def test_cash_and_weights_consistent_under_gaps(make_env, market_arrays) -> None:
+    _, prices, _ = market_arrays
+    gapped_open = np.vstack([prices[:1], prices[:-1]]) * (1 + 0.03 * np.cos(np.arange(prices.shape[0])))[:, None]
+    env = make_env(execution="next_open", friction=FULL_FRICTION, open_prices=gapped_open)
+    env.reset(seed=0)
+    rng = np.random.default_rng(5)
+    for _ in range(40):
+        _, _, term, trunc, info = env.step(rng.uniform(-1, 1, env.action_space.shape))
+        w = info["weights"]
+        assert info["nav"] == pytest.approx(env.cash + env.holdings @ env.prices[env.t], rel=1e-12)
+        assert w.sum() + info["cash_weight"] == pytest.approx(1.0, abs=1e-12)
+        assert np.all(env.holdings >= -1e-9)          # long-only book never goes short
+        assert info["gross_exposure"] <= 1.0 + 0.10   # fixed-share orders: leverage bounded by the gap size
+        if term or trunc:
+            break
