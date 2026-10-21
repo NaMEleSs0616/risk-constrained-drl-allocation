@@ -43,6 +43,8 @@ PREAMBLE = r"""\documentclass[11pt]{article}
 \usepackage{xcolor}
 \usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
 \usepackage{microtype}
+\usepackage[section]{placeins}
+\makeatletter\def\fps@figure{!htbp}\makeatother
 \providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \makeatletter
 \newsavebox\pandoc@box
@@ -92,9 +94,12 @@ def preprocess(main: str) -> tuple[str, str, str, str, str, list[str]]:
     # Tables: move the <figcaption> into the <table> as a <caption>; keep notes after the table.
     def table_fig(m: re.Match) -> str:
         block = m.group(0)
+        tid = re.match(r"<figure class=['\"]table['\"][^>]*?id=['\"]([^'\"]+)", block)
         cap = re.search(r"<figcaption>(.*?)</figcaption>", block, re.S)
         caption = cap.group(1).strip() if cap else ""
         table = re.search(r"<table>.*?</table>", block, re.S).group(0)
+        if tid:
+            caption += f" LBLK{tid.group(1)}LBLE"
         table = table.replace("<table>", f"<table><caption>{caption}</caption>", 1)
         notes = " ".join(re.findall(r"<p class=['\"]table-note['\"]>(.*?)</p>", block, re.S))
         if notes:  # keep notes with their table: append to the caption
@@ -104,6 +109,7 @@ def preprocess(main: str) -> tuple[str, str, str, str, str, list[str]]:
     # Citations -> placeholders that survive pandoc; merged later into \cite{...}.
     body = re.sub(r'<a href="#(r\d+)">\[\d+\]</a>', r"CITEKEY\1CITEEND", body)
     # Internal cross-reference links -> plain text (numbers already match LaTeX's order).
+    body = re.sub(r"<a href=['\"]#((?:tab|fig)-[^'\"]+)['\"]>(Table|Figure) \d+</a>", r"\2 REFK\1REFE", body)
     body = re.sub(r"<a href=['\"]#(?:tab|fig)-[^'\"]+['\"]>(.*?)</a>", r"\1", body)
     body = re.sub(r'<a href="#(s\d+|appendix|refs)">(.*?)</a>', r"\2", body)
     # Math delimiters.
@@ -144,6 +150,8 @@ def longtable_to_float(m: re.Match) -> str:
 
 
 def postprocess(tex: str) -> str:
+    tex = re.sub(r"\s*LBLK([\w-]+)LBLE", r"\\label{\1}", tex)
+    tex = re.sub(r"(Table|Figure) REFK([\w-]+)REFE", r"\1~\\ref{\2}", tex)
     tex = re.sub(r"(?:CITEKEY(r\d+)CITEEND)+",
                  lambda m: "\\cite{" + ",".join(re.findall(r"CITEKEY(r\d+)CITEEND", m.group(0))) + "}", tex)
     tex = re.sub(r"\\begin\{longtable\}.*?\\end\{longtable\}", longtable_to_float, tex, flags=re.S)
