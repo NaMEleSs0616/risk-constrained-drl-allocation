@@ -58,7 +58,7 @@ PREAMBLE = r"""\documentclass[11pt]{article}
 \graphicspath{{./}}
 
 \title{%TITLE%}
-\author{Author names withheld for review}
+\author{%AUTHOR%}
 \date{October 2026}
 
 \begin{document}
@@ -77,9 +77,11 @@ def to_latex(fragment: str) -> str:
                                  extra_args=["--wrap=preserve", "--shift-heading-level-by=-1"])
 
 
-def preprocess(main: str) -> tuple[str, str, str, str, list[str]]:
+def preprocess(main: str) -> tuple[str, str, str, str, str, list[str]]:
     """Pull out title / abstract / keywords and normalise the body for pandoc."""
     title = re.search(r"<h1>(.*?)</h1>", main, re.S).group(1)
+    author_m = re.search(r'<div class="author">(.*?)</div>', main, re.S)
+    author = author_m.group(1).strip() if author_m else "Anonymous"
     abstract = re.search(r'<section class="abstract">.*?<h2>Abstract</h2>(.*?)</section>', main, re.S).group(1)
     keywords = re.search(r'<p class="keywords"><b>Keywords:</b>(.*?)</p>', main, re.S).group(1).strip()
     body = main[main.index('<h2 id="s1">'):]
@@ -112,7 +114,7 @@ def preprocess(main: str) -> tuple[str, str, str, str, list[str]]:
     body = body.replace('<div class="callout">', "<blockquote>").replace("</div>", "</blockquote>") \
         if False else re.sub(r'<div class="callout">(.*?)</div>', r"<blockquote>\1</blockquote>", body, flags=re.S)
     body = re.sub(r"</p></div>", "</p>", body)
-    return title, abstract, keywords, body, figures
+    return title, author, abstract, keywords, body, figures
 
 
 def references(body: str) -> tuple[str, str]:
@@ -165,7 +167,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     out.mkdir(parents=True, exist_ok=True)
     page = src.read_text(encoding="utf-8")
     main_html = re.search(r'<main class="page">(.*)</main>', page, re.S).group(1)
-    title, abstract, keywords, body, figures = preprocess(main_html)
+    title, author, abstract, keywords, body, figures = preprocess(main_html)
     body, bib = references(body)
     appendix_split = body.split('<h2 id="appendix">Appendix</h2>')
     tex_body = to_latex(appendix_split[0])
@@ -174,6 +176,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         tex_body += "\n" + bib
     doc = (PREAMBLE.replace("%TITLE%", to_latex(title).strip())
+           .replace("%AUTHOR%", htmllib.unescape(author))
            .replace("%ABSTRACT%", to_latex(abstract).strip())
            .replace("%KEYWORDS%", htmllib.unescape(keywords))
            + tex_body + "\n\\end{document}\n")
