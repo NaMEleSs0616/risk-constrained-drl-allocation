@@ -329,7 +329,8 @@ def test_execution_next_open_timeline(make_env, market_arrays) -> None:
     target = np.array([0.5, 0.3, 0.0])
     _, _, _, _, info = env.step_with_weights(target)  # from all cash: overnight return is 0
     np.testing.assert_allclose(info["execution_prices"], opens[t + 1])
-    expected = float(np.sum(target * (prices[t + 1] / opens[t + 1] - 1.0)))
+    # Shares are fixed at the decision close (w * NAV / close_t) and filled at the open of t+1.
+    expected = float(np.sum(target * (prices[t + 1] - opens[t + 1]) / prices[t]))
     assert info["portfolio_return"] == pytest.approx(expected, rel=1e-10)
     # Holding (None = no order): zero turnover/cost, and the return is the held book's close-to-close move.
     h, cash, nav0, t2 = env.holdings.copy(), env.cash, env.nav, env.t
@@ -373,12 +374,13 @@ def test_decision_ignores_information_unavailable_at_order_time() -> None:
         obs, _ = env.reset(options={"start_index": t})
         action = np.tanh(w_policy * obs[:4].mean())  # any deterministic function of the observation
         _, _, _, _, info = env.step(action)
-        return obs, info["target_weights"], info["execution_prices"]
+        return obs, info["target_weights"], info["execution_prices"], info["order_shares"]
 
-    obs_a, w_a, px_a = decide(data)
-    obs_b, w_b, px_b = decide(shocked)
+    obs_a, w_a, px_a, q_a = decide(data)
+    obs_b, w_b, px_b, q_b = decide(shocked)
     np.testing.assert_array_equal(obs_a, obs_b)
     np.testing.assert_array_equal(w_a, w_b)
+    np.testing.assert_array_equal(q_a, q_b)  # the order itself (shares) is fixed at submission time
     assert not np.allclose(px_a, px_b)  # the fill happens at t+1 and does see the shock
 
 

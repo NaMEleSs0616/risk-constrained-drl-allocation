@@ -559,19 +559,26 @@ class PortfolioEnv(gym.Env):
             p_exec = self.prices[t1]
         else:
             p_exec = self.prices[t]
-        nav_pre = float(self.cash + self.holdings @ p_exec)
-        w_exec = self.holdings * p_exec / nav_pre if nav_pre > _EPS else np.zeros(self.n_assets)
-        w_target = w_exec.copy() if hold else np.nan_to_num(np.asarray(target_weights, dtype=np.float64), nan=0.0)
+        # The order is fully determined at decision time: share quantities sized at the close
+        # of t with information up to t (weights, NAV, volatility, ADV). Only the fill price,
+        # and hence the realised notional and cost, depends on the execution price.
+        p_dec = self.prices[t]
+        w_dec = self.holdings * p_dec / nav_decision if nav_decision > _EPS else np.zeros(self.n_assets)
+        w_target = w_dec.copy() if hold else np.nan_to_num(np.asarray(target_weights, dtype=np.float64), nan=0.0)
         if not hold and (self.config.trade_rate < 1.0 or self.config.no_trade_band > 0.0):
-            # Partial adjustment from the weights held at execution toward the target, plus a band.
-            w_target = w_exec + self.config.trade_rate * (w_target - w_exec)
-            if np.abs(w_target - w_exec).sum() < self.config.no_trade_band:
-                w_target = w_exec.copy()
-        # Costs use volatility / ADV known at decision time (data up to t).
-        trade = np.zeros(self.n_assets) if hold else self._solve_trade(w_target, nav_pre, t, p_exec)
+            # Partial adjustment from the current weights toward the target, plus a no-trade band.
+            w_target = w_dec + self.config.trade_rate * (w_target - w_dec)
+            if np.abs(w_target - w_dec).sum() < self.config.no_trade_band:
+                w_target = w_dec.copy()
+        if hold:
+            order_shares = np.zeros(self.n_assets)
+        else:
+            order_shares = self._solve_trade(w_target, nav_decision, t, p_dec) / p_dec
+        nav_pre = float(self.cash + self.holdings @ p_exec)
+        trade = order_shares * p_exec  # realised notional at the fill price
         costs, increment = self.compute_trade_costs(trade, t)
         self.cash -= float(trade.sum()) + costs.total
-        self.holdings = self.holdings + trade / p_exec
+        self.holdings = self.holdings + order_shares
         self.impact_state = self.impact_state + increment
         nav_post_trade = float(self.cash + self.holdings @ p_exec)
 
@@ -613,6 +620,7 @@ class PortfolioEnv(gym.Env):
                 "nav_post_trade": nav_post_trade,
                 "nav_decision": nav_decision,
                 "execution_prices": p_exec,
+                "order_shares": order_shares,
                 "turnover": turnover,
                 "cost": float(cost_frac),
                 "costs": costs.as_dict(),
