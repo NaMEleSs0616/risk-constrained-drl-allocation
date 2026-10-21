@@ -174,6 +174,7 @@ def make_eval_env(
         reward_overrides=reward_overrides,
         asset_names=market.assets,
         dates=list(market.dates),
+        open_prices=market.open,
     )
 
 

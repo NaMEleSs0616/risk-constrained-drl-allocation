@@ -100,8 +100,8 @@ class BaselineStrategy(ABC):
             return True
         return self.rebalance_every is not None and self._calls % self.rebalance_every == 0
 
-    def __call__(self, env: "PortfolioEnv") -> np.ndarray:
-        """Return target weights for the env's current period.
+    def __call__(self, env: "PortfolioEnv") -> np.ndarray | None:
+        """Return target weights for the env's current period (``None`` = hold).
 
         Args:
             env: The environment (only ``price_history`` / ``current_weights`` are read).
@@ -112,7 +112,7 @@ class BaselineStrategy(ABC):
         rebalance = self._should_rebalance()
         self._calls += 1
         if not rebalance:
-            return env.current_weights
+            return None  # hold: no order, the book drifts
         prices = env.price_history()
         rets = np.diff(np.log(prices[-(self.estimation_window + 1) :]), axis=0)
         n = prices.shape[1]
@@ -160,7 +160,7 @@ class EqualWeightStrategy(BaselineStrategy):
         rebalance = self._should_rebalance()
         self._calls += 1
         if not rebalance:
-            return env.current_weights
+            return None  # hold: no order, the book drifts
         return self._postprocess(np.full(env.n_assets, 1.0 / env.n_assets))
 
 
@@ -373,7 +373,7 @@ def build_baselines(cfg: Mapping[str, Any], max_gross: float = 1.0) -> dict[str,
         "max_gross": max_gross,
     }
     every = int(cfg.get("rebalance_every", 21))
-    return {
+    out: dict[str, BaselineStrategy] = {
         "Equal Weight (1/N)": EqualWeightStrategy(rebalance_every=every, **common),
         "Buy & Hold (1/N)": EqualWeightStrategy(rebalance_every=None, **common),
         "MVO (Ledoit-Wolf)": MeanVarianceStrategy(
@@ -386,3 +386,7 @@ def build_baselines(cfg: Mapping[str, Any], max_gross: float = 1.0) -> dict[str,
         "Risk Parity (ERC)": RiskParityStrategy(rebalance_every=every, **common),
         "HRP": HierarchicalRiskParityStrategy(rebalance_every=every, **common),
     }
+    if cfg.get("daily_variants", False):  # trading-frequency-matched versions (rebalance every day)
+        out["Equal Weight (1/N, daily)"] = EqualWeightStrategy(rebalance_every=1, **common)
+        out["Risk Parity (ERC, daily)"] = RiskParityStrategy(rebalance_every=1, **common)
+    return out

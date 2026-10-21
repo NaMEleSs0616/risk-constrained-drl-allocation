@@ -53,6 +53,7 @@ environment:
   bankruptcy_threshold: 0.10    # terminate when NAV < threshold * initial NAV
   portfolio_vol_window: 21
   periods_per_year: 252
+  execution: close              # LEGACY same-close fill (reproduces the v1-v5 results; not tradable)
   friction:
     commission_bps: 1.0         # proportional fee on traded notional
     slippage_bps: 2.0           # half-spread crossed on every trade

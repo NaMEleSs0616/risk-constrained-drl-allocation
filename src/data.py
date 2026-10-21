@@ -243,6 +243,10 @@ def load_csv_market(path: str | Path, assets: Sequence[str] | None = None) -> Ma
         df = df[df["ticker"].isin(assets)]
     tickers = list(assets) if assets else sorted(df["ticker"].unique())
 
+    if "open" not in df.columns:
+        logger.warning("CSV has no 'open' column: opens are set to closes, so execution='next_open' "
+                       "will fill at the close of t+1 (equivalent to 'next_close')")
+
     def pivot(col: str) -> pd.DataFrame:
         src = col if col in df.columns else "close"
         return df.pivot_table(index="date", columns="ticker", values=src, aggfunc="last")[tickers]
