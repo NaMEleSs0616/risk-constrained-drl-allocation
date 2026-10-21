@@ -10,6 +10,8 @@
 \usepackage{xcolor}
 \usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
 \usepackage{microtype}
+\usepackage[section]{placeins}
+\makeatletter\def\fps@figure{!htbp}\makeatother
 \providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \makeatletter
 \newsavebox\pandoc@box
@@ -33,7 +35,7 @@
 \begin{abstract}
 Deep reinforcement learning (DRL) allocators trained to maximise return have no explicit incentive to avoid tail losses, and the usual remedy is to subtract tail-risk penalties from the reward. We test that remedy under conditions designed to be hard to fool. The simulator charges commission, half-spread, and temporary and permanent square-root market impact; evaluation is strictly walk-forward; every configuration is trained on three seeds; and every strategy runs through the same simulator. The main study allocates across ten liquid multi-asset ETFs over 14 annual out-of-sample folds (October 2012 to October 2026). It covers 27 PPO training chains: return-only rewards, fixed CVaR and drawdown penalties at two scales, a turnover penalty, RCPO with adaptive multipliers (loose and 1/N-matched targets), and partial-adjustment execution. These are compared with a volatility-targeting overlay, five classical baselines and an untrained-policy control. A controlled study on a simulated regime-switching market (45 further agents) supplies ground-truth regimes and a selection-free robustness check.
 
-With direct execution of target weights, no PPO variant beats equal weighting after costs. Sharpe ratios are 0.33--0.38, against 0.65 for 1/N, and five of six configurations are significantly worse. Before costs, however, the agents beat 1/N (gross Sharpe 0.74--0.81). The edge comes from short-horizon timing rather than static tilts, but harvesting it takes 37--49\% daily turnover, which costs 3.2--4.5\% of NAV a year. Smoothing execution, so that each day closes 10\% of the gap to the target, cuts turnover by about 90\% and raises net Sharpe by about 0.2 (p = 0.006 for the penalised variant), bringing PPO to statistical parity with 1/N. It also removes the timing edge. With smoothing and calibrated penalties, the agent has the lowest maximum drawdown of all strategies (16.9\%), yet 1/N de-levered to the same exposure matches it. RCPO with 1/N-matched targets binds but lowers performance, and no agent learns to de-risk when risk rises. The controlled study agrees: penalties regularise the policy towards its conservative initialisation, and additional training degrades out-of-sample performance. Under realistic frictions, execution design governs net performance more than tail-risk shaping does, and tail-risk penalties mainly move the agent towards a de-levered, diversified portfolio.
+With direct execution of target weights, no PPO variant beats equal weighting after costs. Sharpe ratios are 0.33--0.38, against 0.65 for 1/N, and five of six configurations are significantly worse. Before costs, however, the agents beat 1/N (gross Sharpe 0.74--0.81). The edge comes from short-horizon timing rather than static tilts, but harvesting it takes 37--49\% daily turnover, which costs 3.2--4.5\% of NAV a year. Smoothing execution, so that each day closes 10\% of the gap to the target, cuts turnover by about 90\% and raises net Sharpe by about 0.2 (p = 0.006 for the penalised variant), bringing PPO to statistical parity with 1/N. It also removes the timing edge. With smoothing and calibrated penalties, the agent has the lowest maximum drawdown of all strategies (16.9\%), yet 1/N de-levered to the same exposure matches it. RCPO with 1/N-matched targets binds but lowers performance, and no agent learns to de-risk when risk rises. The most striking result concerns the network\textquotesingle s starting point. The untrained policy, which allocates equally across every asset and cash, matches or beats every trained agent on risk-adjusted return in both datasets (Sharpe 0.66 on ETFs, 1.38 on the simulated market). On the simulated market, additional training lowers out-of-sample performance while in-sample performance keeps rising; on ETFs, in-sample Sharpe reaches about 4 against 0.38 out of sample. Gradient updates mostly add turnover and fit the training window, and only a weak timing signal survives on real data. Tail-risk penalties help mainly by keeping the policy close to its prior. Under realistic frictions, execution design governs net performance more than tail-risk shaping does, and tail-risk penalties mainly move the agent towards a de-levered, diversified portfolio.
 \end{abstract}
 \noindent\textbf{Keywords:} deep reinforcement learning; proximal policy optimization; conditional value-at-risk; drawdown control; constrained RL; market impact; transaction costs; walk-forward validation; portfolio allocation
 
@@ -70,6 +72,10 @@ Our contributions are:
 \item
   \textbf{Findings} that substantially qualify the motivating hypothesis (\S{}5--\S{}7). The agents learn a real but untradeable timing signal. Smoothing makes them competitive with 1/N but gives up that signal. Penalties and binding constraints reduce risk only as much as de-levering does, and no agent learns to manage risk dynamically.
 \end{enumerate}
+
+\begin{quote}
+\textbf{The prior matters more than the training.} PPO\textquotesingle s softmax policy with a cash logit starts by allocating equally across all assets and cash, effectively a regularised equal-weight-plus-cash portfolio. In both datasets this untrained starting point matches or beats every trained agent on risk-adjusted return. Training moves the policy away from it mainly by adding turnover and fitting noise in the training window (\S{}6.2, \S{}7.3). Many design choices in DRL allocation, including tail-risk penalties, are best understood by how far they let the policy drift from this prior.
+\end{quote}
 
 We make no theoretical stability claim: fixed-multiplier penalties carry no general guarantee of bounded tail risk, and we treat their effect as an empirical question.
 
@@ -185,7 +191,7 @@ The causal TCN\textquotesingle s receptive field is 7 days. Longer horizons ente
 
 \subsection{Optimisation}\label{optimisation}
 
-Agents are trained with PPO \cite{r18} and generalised advantage estimation \cite{r19} in Stable-Baselines3 \cite{r44}, using the hyper-parameters in Table 3. Rewards are normalised by a running estimate of the discounted-return scale; observations are not, because the features are already z-scores. Training episodes are 252 days long, start at random dates inside the training window, and begin from an all-cash book.
+Agents are trained with PPO \cite{r18} and generalised advantage estimation \cite{r19} in Stable-Baselines3 \cite{r44}, using the hyper-parameters in Table~\ref{tab-hparams}. Rewards are normalised by a running estimate of the discounted-return scale; observations are not, because the features are already z-scores. Training episodes are 252 days long, start at random dates inside the training window, and begin from an all-cash book.
 
 \section{Empirical setup}\label{s4}
 
@@ -195,7 +201,7 @@ The main study uses ten liquid U.S.-listed ETFs covering the major asset classes
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{The ETF universe, April 2007 -- October 2026 (4,910 days). Daily log returns, annualised. "Stress" days fall in the named episodes of Table 2. \emph{Note:} Average pairwise correlation 0.27 on calm days and 0.21 on stress days; SPY--TLT correlation $-$0.24 calm and $-$0.42 stress (flight to quality).}
+\caption{The ETF universe, April 2007 -- October 2026 (4,910 days). Daily log returns, annualised. "Stress" days fall in the named episodes of Table~\ref{tab-episodes}.\label{tab-etf} \emph{Note:} Average pairwise correlation 0.27 on calm days and 0.21 on stress days; SPY--TLT correlation $-$0.24 calm and $-$0.42 stress (flight to quality).}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}llllllllll@{}}
 \toprule
@@ -216,11 +222,11 @@ VNQ & U.S. real estate & 4.84 & 29.56 & 21.82 & 52.30 & $-$0.52 & 18.00 & $-$21.
 \end{adjustbox}
 \end{table}
 
-\textbf{Stress episodes.} Real data has no ground-truth regimes. For the regime-conditional analysis we label days that fall in ten widely recognised stress episodes, fixed before any results were inspected and listed in Table 2. They cover 17.3\% of the sample and 11.1\% of out-of-sample days. No strategy ever observes these labels.
+\textbf{Stress episodes.} Real data has no ground-truth regimes. For the regime-conditional analysis we label days that fall in ten widely recognised stress episodes, fixed before any results were inspected and listed in Table~\ref{tab-episodes}. They cover 17.3\% of the sample and 11.1\% of out-of-sample days. No strategy ever observes these labels.
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Named stress episodes used to label regimes (inclusive dates; S\&P 500 peak to trough unless noted).}
+\caption{Named stress episodes used to label regimes (inclusive dates; S\&P 500 peak to trough unless noted).\label{tab-episodes}}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}llll@{}}
 \toprule
@@ -243,7 +249,7 @@ COVID-19 crash & 2020-02-19 & 2020-03-23 & yes \\
 
 \subsection{Simulated market (controlled study)}\label{simulated-market-controlled-study}
 
-The controlled study uses a simulated market that provides what real data cannot: ground-truth regimes and many independent fat-tailed stress episodes. A two-state Markov regime in the spirit of Hamilton \cite{r40} drives the market: calm turns to stress with probability 0.008 per day, and stress persists with probability 0.97. Five assets follow a one-factor model with unit-variance Student-t innovations ($\nu$ = 4). In stress, volatility rises 2.5-fold, factor loadings rise from 0.55 to 0.85, and drift falls to $-$35\% a year. Each asset also carries a weak, persistent latent alpha (AR(1) with coefficient 0.97, scale 0.06 daily standard deviations). The sample is 3,000 days with 18 stress episodes covering 16.6\% of days. Full descriptive statistics are in the appendix (Table 23).
+The controlled study uses a simulated market that provides what real data cannot: ground-truth regimes and many independent fat-tailed stress episodes. A two-state Markov regime in the spirit of Hamilton \cite{r40} drives the market: calm turns to stress with probability 0.008 per day, and stress persists with probability 0.97. Five assets follow a one-factor model with unit-variance Student-t innovations ($\nu$ = 4). In stress, volatility rises 2.5-fold, factor loadings rise from 0.55 to 0.85, and drift falls to $-$35\% a year. Each asset also carries a weak, persistent latent alpha (AR(1) with coefficient 0.97, scale 0.06 daily standard deviations). The sample is 3,000 days with 18 stress episodes covering 16.6\% of days. Full descriptive statistics are in the appendix (Table~\ref{tab-syn-data}).
 
 \subsection{Features}\label{features}
 
@@ -251,13 +257,13 @@ For each asset and window \(w\in\{5,21,63\}\) we compute log momentum, realised 
 
 \subsection{Walk-forward protocols}\label{walk-forward-protocols}
 
-\textbf{Market data.} We use 14 rolling, end-anchored folds, each with a 1,008-day (four-year) training window, a 5-day embargo and a 252-day test window. The concatenated test windows form one contiguous track of 3,527 daily returns from 2 October 2012 to 14 October 2026 (fold calendar in Table 18). Retraining from scratch 14 times per agent was not affordable, so each (variant, seed) is trained as a chain. Fold 0 trains from scratch for 102,400 steps; each later fold fine-tunes the previous fold\textquotesingle s model on its own training window for 28,672 steps (budgets rounded up to whole PPO rollouts). Only data before each test window is ever used for training. \emph{Each fold is evaluated with its final model, with no checkpoint selection}, because the controlled study showed that validation-based selection interacts with the penalties (\S{}6.2).
+\textbf{Market data.} We use 14 rolling, end-anchored folds, each with a 1,008-day (four-year) training window, a 5-day embargo and a 252-day test window. The concatenated test windows form one contiguous track of 3,527 daily returns from 2 October 2012 to 14 October 2026 (fold calendar in Table~\ref{tab-fold-cal}). Retraining from scratch 14 times per agent was not affordable, so each (variant, seed) is trained as a chain. Fold 0 trains from scratch for 102,400 steps; each later fold fine-tunes the previous fold\textquotesingle s model on its own training window for 28,672 steps (budgets rounded up to whole PPO rollouts). Only data before each test window is ever used for training. \emph{Each fold is evaluated with its final model, with no checkpoint selection}, because the controlled study showed that validation-based selection interacts with the penalties (\S{}6.2).
 
 \textbf{Simulated data.} We use three rolling folds (1,008-day training, 252-day test, 5-day embargo). Every (variant, seed, fold) agent trains from scratch for 150,000 steps, and the checkpoint with the best reward on the last 15\% of the training window is kept. A separate analysis re-evaluates every agent at fixed budgets with no selection.
 
 \subsection{Strategies compared}\label{strategies-compared}
 
-\textbf{PPO variants} share every hyper-parameter (Table 3) and differ only in the reward:
+\textbf{PPO variants} share every hyper-parameter (Table~\ref{tab-hparams}) and differ only in the reward:
 
 \begin{itemize}
 \tightlist
@@ -315,7 +321,7 @@ We report cumulative and geometric annualised return, volatility, the Sharpe rat
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{PPO hyper-parameters, shared by every variant in both studies.}
+\caption{PPO hyper-parameters, shared by every variant in both studies.\label{tab-hparams}}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}llll@{}}
 \toprule
@@ -338,7 +344,7 @@ Budget, market data & 102,400 steps (fold 0) + 28,672 per later fold & Budget, s
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Out-of-sample performance on the stitched walk-forward test period (14 folds, 3,527 trading days, net of all frictions). PPO rows: mean $\pm$ standard deviation across 3 training seeds. Bold marks the best value in each column. \emph{Note:} CVaR\textsubscript{95} is the daily historical expected shortfall of net returns. Annualised return is geometric; Sharpe and Sortino use a zero risk-free rate.}
+\caption{Out-of-sample performance on the stitched walk-forward test period (14 folds, 3,527 trading days, net of all frictions). PPO rows: mean $\pm$ standard deviation across 3 training seeds. Bold marks the best value in each column.\label{tab-main-real} \emph{Note:} CVaR\textsubscript{95} is the daily historical expected shortfall of net returns. Annualised return is geometric; Sharpe and Sortino use a zero risk-free rate.}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}lllllllll@{}}
 \toprule
@@ -361,7 +367,7 @@ Untrained policy (1/(N+1) incl. cash) & 100.3 & 5.1 & 8.1 & 0.66 & 0.91 & \textb
 \end{adjustbox}
 \end{table}
 
-\textbf{R1.} \textbf{No PPO variant beats equal weighting after costs.} Across 14 years out of sample, 1/N earns a Sharpe ratio of 0.65 and buy-and-hold 1/N 0.66. The PPO variants earn 0.33--0.38, with vanilla A highest at 0.38 $\pm$ 0.05. Five of the six PPO configurations trail 1/N significantly (p $\le$ 0.012; Table 5); vanilla A\textquotesingle s shortfall of 0.24 is borderline (p = 0.07). Two shortfalls survive a Bonferroni correction across the 16 tests: the overlay (p \textless{} 0.001) and D (p = 0.001). The best strategy overall is Ledoit--Wolf mean-variance (0.75), which is not distinguishable from 1/N. The untrained policy (0.66, MaxDD 18.1\%) is again at least as good as every trained agent.
+\textbf{R1.} \textbf{No PPO variant beats equal weighting after costs.} Across 14 years out of sample, 1/N earns a Sharpe ratio of 0.65 and buy-and-hold 1/N 0.66. The PPO variants earn 0.33--0.38, with vanilla A highest at 0.38 $\pm$ 0.05. Five of the six PPO configurations trail 1/N significantly (p $\le$ 0.012; Table~\ref{tab-sig-real}); vanilla A\textquotesingle s shortfall of 0.24 is borderline (p = 0.07). Two shortfalls survive a Bonferroni correction across the 16 tests: the overlay (p \textless{} 0.001) and D (p = 0.001). The best strategy overall is Ledoit--Wolf mean-variance (0.75), which is not distinguishable from 1/N. The untrained policy (0.66, MaxDD 18.1\%) is again at least as good as every trained agent.
 
 \textbf{R2.} \textbf{Fixed drawdown penalties lower tail risk relative to vanilla PPO, at no significant Sharpe cost.} D and E reduce maximum drawdown from 22.2\% to 19.9\% and 19.1\%, volatility from 10.3\% to 8.0--8.7\%, and daily CVaR\textsubscript{95} from 1.51\% to 1.18--1.28\%. Their Sharpe ratios are within 0.05 of A\textquotesingle s (p $\ge$ 0.64). The turnover penalty (T) and RCPO (R) give no reliable risk reduction; R has the largest drawdown (23.9\%) and the widest spread across seeds.
 
@@ -375,7 +381,7 @@ Untrained policy (1/(N+1) incl. cash) & 100.3 & 5.1 & 8.1 & 0.66 & 0.91 & \textb
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Paired circular block-bootstrap tests of annualised Sharpe-ratio differences (block length 21 days, 2,000 replications) on net returns; PPO series are the equal-weight average of seeds. \emph{Note:} * p \textless{} 0.05, ** p \textless{} 0.01 (two-sided, uncorrected).}
+\caption{Paired circular block-bootstrap tests of annualised Sharpe-ratio differences (block length 21 days, 2,000 replications) on net returns; PPO series are the equal-weight average of seeds.\label{tab-sig-real} \emph{Note:} * p \textless{} 0.05, ** p \textless{} 0.01 (two-sided, uncorrected).}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}lllll@{}}
 \toprule
@@ -412,7 +418,7 @@ Untrained policy (1/(N+1) incl. cash) & Equal Weight (1/N) & +0.009 & {[}$-$0.00
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Trading activity, transaction costs and allocation behaviour over the 3,527-day out-of-sample period. Each fold starts from cash with a \$10m NAV. \emph{Note:} Costs sum commission, half-spread, temporary and permanent impact, each period expressed as a fraction of pre-trade NAV. Effective N = ($\Sigma$\textbar w\textbar)$^2$ / $\Sigma$w$^2$.}
+\caption{Trading activity, transaction costs and allocation behaviour over the 3,527-day out-of-sample period. Each fold starts from cash with a \$10m NAV.\label{tab-costs-real} \emph{Note:} Costs sum commission, half-spread, temporary and permanent impact, each period expressed as a fraction of pre-trade NAV. Effective N = ($\Sigma$\textbar w\textbar)$^2$ / $\Sigma$w$^2$.}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}llllllll@{}}
 \toprule
@@ -439,7 +445,7 @@ The classical rules trade 0.4--2.8\% of NAV per day. The PPO agents trade 37--49
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Performance before transaction costs, and co-movement with the 1/N portfolio. Gross returns add each period\textquotesingle s cost back to the net return. Tests are paired block bootstraps on seed-averaged gross returns. \emph{Note:} * p \textless{} 0.05, ** p \textless{} 0.01, uncorrected.}
+\caption{Performance before transaction costs, and co-movement with the 1/N portfolio. Gross returns add each period\textquotesingle s cost back to the net return. Tests are paired block bootstraps on seed-averaged gross returns.\label{tab-gross-real} \emph{Note:} * p \textless{} 0.05, ** p \textless{} 0.01, uncorrected.}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}lllllll@{}}
 \toprule
@@ -462,7 +468,7 @@ Untrained policy (1/(N+1) incl. cash) & 0.66 & 0.66 & +0.012 {[}0.002, 0.024{]} 
 \end{adjustbox}
 \end{table}
 
-Before costs the picture reverses (Table 7, Figure 3). Every PPO configuration has a higher gross Sharpe ratio than 1/N (0.70--0.81 against 0.65). The edge is significant for E (+0.16, 95\% CI {[}0.01, 0.30{]}, p = 0.030) and borderline for A, D and T (p = 0.05--0.06). The agents are also far from 1/N trackers on this data (correlation 0.83--0.93, tracking error 3.2--5.5\% a year).
+Before costs the picture reverses (Table~\ref{tab-gross-real}, Figure~\ref{fig-gross-real}). Every PPO configuration has a higher gross Sharpe ratio than 1/N (0.70--0.81 against 0.65). The edge is significant for E (+0.16, 95\% CI {[}0.01, 0.30{]}, p = 0.030) and borderline for A, D and T (p = 0.05--0.06). The agents are also far from 1/N trackers on this data (correlation 0.83--0.93, tracking error 3.2--5.5\% a year).
 
 \begin{figure}
 \centering
@@ -472,7 +478,7 @@ Before costs the picture reverses (Table 7, Figure 3). Every PPO configuration h
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Timing versus static tilts, before costs. The static-tilt portfolio holds each variant\textquotesingle s average out-of-sample weights constantly (rebalanced daily, no costs); the difference to the actual policy\textquotesingle s gross Sharpe is the contribution of day-to-day re-allocation.}
+\caption{Timing versus static tilts, before costs. The static-tilt portfolio holds each variant\textquotesingle s average out-of-sample weights constantly (rebalanced daily, no costs); the difference to the actual policy\textquotesingle s gross Sharpe is the contribution of day-to-day re-allocation.\label{tab-timing-real}}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}lllll@{}}
 \toprule
@@ -489,13 +495,13 @@ PPO-R $\cdot$ RCPO (adaptive $\lambda$) {(adaptive $\lambda$)} & 0.66 & 0.76 & +
 \end{adjustbox}
 \end{table}
 
-Is the pre-cost edge just a static tilt towards assets that did well, which a cheap fixed portfolio could capture? It is not (Table 8). The agents\textquotesingle{} average weights are close to equal (6--14\% per asset, 7--13\% cash). Holding those average weights statically earns a gross Sharpe of 0.64--0.70, no better than 1/N (0.66). The rest of the pre-cost edge, +0.04 for D to +0.17 for vanilla A, comes from day-to-day re-allocation. The agents have learned a short-horizon timing signal, but harvesting it requires trading roughly half the book every day, which costs more than the signal earns. The penalties shift the agents from timing towards static tilts: D\textquotesingle s timing contribution is a quarter of A\textquotesingle s.
+Is the pre-cost edge just a static tilt towards assets that did well, which a cheap fixed portfolio could capture? It is not (Table~\ref{tab-timing-real}). The agents\textquotesingle{} average weights are close to equal (6--14\% per asset, 7--13\% cash). Holding those average weights statically earns a gross Sharpe of 0.64--0.70, no better than 1/N (0.66). The rest of the pre-cost edge, +0.04 for D to +0.17 for vanilla A, comes from day-to-day re-allocation. The agents have learned a short-horizon timing signal, but harvesting it requires trading roughly half the book every day, which costs more than the signal earns. The penalties shift the agents from timing towards static tilts: D\textquotesingle s timing contribution is a quarter of A\textquotesingle s.
 
 \subsection{Stress periods and de-risking}\label{stress-periods-and-de-risking}
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Regime-conditional statistics of net daily returns (3,136 calm and 391 stress days out of sample). PPO rows average the per-seed statistics. \emph{Note:} Regime labels are never observed by any strategy; they are used only for this analysis.}
+\caption{Regime-conditional statistics of net daily returns (3,136 calm and 391 stress days out of sample). PPO rows average the per-seed statistics.\label{tab-regime-real} \emph{Note:} Regime labels are never observed by any strategy; they are used only for this analysis.}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}lllllllll@{}}
 \toprule
@@ -522,7 +528,7 @@ On the 391 out-of-sample stress days, every strategy loses money (annualised $-$
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Is de-risking state-dependent? Average cash weight by regime, and the correlation between cash weight and the portfolio\textquotesingle s trailing realised volatility (mean $\pm$ std over seeds).}
+\caption{Is de-risking state-dependent? Average cash weight by regime, and the correlation between cash weight and the portfolio\textquotesingle s trailing realised volatility (mean $\pm$ std over seeds).\label{tab-derisk-real}}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}llll@{}}
 \toprule
@@ -539,15 +545,15 @@ PPO-R $\cdot$ RCPO (adaptive $\lambda$) {(adaptive $\lambda$)} & 10.7{ $\pm$ 2.7
 \end{adjustbox}
 \end{table}
 
-No agent learns to de-risk (Table 10). Vanilla A holds \emph{less} cash on stress days than on calm days (5.6\% against 7.4\%), and its cash weight is negatively correlated with its own trailing volatility ($-$0.14). The penalised variants hold a larger but static cash buffer (10--14\%) with no meaningful response to volatility. Only the overlay, by construction, raises cash in stress (11.8\% to 16.6\%).
+No agent learns to de-risk (Table~\ref{tab-derisk-real}). Vanilla A holds \emph{less} cash on stress days than on calm days (5.6\% against 7.4\%), and its cash weight is negatively correlated with its own trailing volatility ($-$0.14). The penalised variants hold a larger but static cash buffer (10--14\%) with no meaningful response to volatility. Only the overlay, by construction, raises cash in stress (11.8\% to 16.6\%).
 
-The 2022 fold, the only test year dominated by stress (76\% of days, when stocks and bonds fell together), shows the limits of all the risk-based methods. D ($-$1.62) and E ($-$1.39) did worse than vanilla A ($-$1.13) and no better than 1/N ($-$1.37), risk parity ($-$1.59) or HRP ($-$1.86). Only mean-variance stayed positive (+0.17), by concentrating in the few assets that held up. Per-fold results are in Table 19. No PPO configuration beats 1/N in more than three of the 14 years.
+The 2022 fold, the only test year dominated by stress (76\% of days, when stocks and bonds fell together), shows the limits of all the risk-based methods. D ($-$1.62) and E ($-$1.39) did worse than vanilla A ($-$1.13) and no better than 1/N ($-$1.37), risk parity ($-$1.59) or HRP ($-$1.86). Only mean-variance stayed positive (+0.17), by concentrating in the few assets that held up. Per-fold results are in Table~\ref{tab-folds-real}. No PPO configuration beats 1/N in more than three of the 14 years.
 
 \subsection{RCPO and the turnover penalty}\label{rcpo-and-the-turnover-penalty}
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{RCPO multipliers at the end of each fold\textquotesingle s training.}
+\caption{RCPO multipliers at the end of each fold\textquotesingle s training.\label{tab-lagrangian-real}}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}lllllllllllllll@{}}
 \toprule
@@ -560,7 +566,7 @@ R: $\lambda_2$ (drawdown) & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.0
 \end{adjustbox}
 \end{table}
 
-RCPO did not engage. Its CVaR multiplier rose to 0.38 on average during fold 0, whose training window contains the financial crisis, then decayed to zero by fold 2 and never exceeded 0.07 afterwards (Table 11). The drawdown multiplier essentially never activated. With the targets we chose (average daily CVaR of 1.5\%, RMS drawdown of about 7\%), the constraints were slack for most of the sample, so R behaved like vanilla PPO with extra variance. This is a calibration failure on our part, not evidence against adaptive multipliers. Tighter targets (for example, those of the 1/N portfolio in each training window) are the natural next test. The turnover penalty was likewise too weak: at three times the realised cost per unit of turnover, it is small next to the exploration-induced turnover the agent sees in training (about 110\% per day, Figure 5).
+RCPO did not engage. Its CVaR multiplier rose to 0.38 on average during fold 0, whose training window contains the financial crisis, then decayed to zero by fold 2 and never exceeded 0.07 afterwards (Table~\ref{tab-lagrangian-real}). The drawdown multiplier essentially never activated. With the targets we chose (average daily CVaR of 1.5\%, RMS drawdown of about 7\%), the constraints were slack for most of the sample, so R behaved like vanilla PPO with extra variance. This is a calibration failure on our part, not evidence against adaptive multipliers. Tighter targets (for example, those of the 1/N portfolio in each training window) are the natural next test. The turnover penalty was likewise too weak: at three times the realised cost per unit of turnover, it is small next to the exploration-induced turnover the agent sees in training (about 110\% per day, Figure~\ref{fig-training-real}).
 
 \begin{figure}
 \centering
@@ -580,7 +586,7 @@ The results above point to two specific weaknesses: turnover that consumes a rea
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Out-of-sample performance on the stitched walk-forward test period (14 folds, 3,527 trading days, net of all frictions). PPO rows: mean $\pm$ standard deviation across 3 training seeds. Bold marks the best value in each column. \emph{Note:} CVaR\textsubscript{95} is the daily historical expected shortfall of net returns. Annualised return is geometric; Sharpe and Sortino use a zero risk-free rate.}
+\caption{Out-of-sample performance on the stitched walk-forward test period (14 folds, 3,527 trading days, net of all frictions). PPO rows: mean $\pm$ standard deviation across 3 training seeds. Bold marks the best value in each column.\label{tab-main-fu} \emph{Note:} CVaR\textsubscript{95} is the daily historical expected shortfall of net returns. Annualised return is geometric; Sharpe and Sortino use a zero risk-free rate.}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}lllllllll@{}}
 \toprule
@@ -603,7 +609,7 @@ Untrained policy (1/(N+1) incl. cash) & 100.3 & 5.1 & 8.1 & 0.66 & 0.91 & 18.1 &
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Follow-up variants against their counterparts in the original ETF run (same data, folds, seeds and test dates). Paired block-bootstrap tests on seed-averaged daily returns; MaxDD here is computed on the seed-averaged return series. \emph{Note:} * p \textless{} 0.05, ** p \textless{} 0.01, uncorrected.}
+\caption{Follow-up variants against their counterparts in the original ETF run (same data, folds, seeds and test dates). Paired block-bootstrap tests on seed-averaged daily returns; MaxDD here is computed on the seed-averaged return series.\label{tab-compare-fu} \emph{Note:} * p \textless{} 0.05, ** p \textless{} 0.01, uncorrected.}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}lllllll@{}}
 \toprule
@@ -631,7 +637,7 @@ PPO-SRT $\cdot$ smoothed + RCPO 1/N-matched {(adaptive $\lambda$)} & PPO-S $\cdo
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Exposure-matched control. Each agent (seed-averaged returns) against 1/N scaled to the agent\textquotesingle s average invested fraction, with the remainder in zero-yield cash.}
+\caption{Exposure-matched control. Each agent (seed-averaged returns) against 1/N scaled to the agent\textquotesingle s average invested fraction, with the remainder in zero-yield cash.\label{tab-delev-fu}}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}llllll@{}}
 \toprule
@@ -650,7 +656,7 @@ PPO-SRT $\cdot$ smoothed + RCPO 1/N-matched {(adaptive $\lambda$)} & 9.0 & 0.56 
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{RCPO multipliers at the end of each fold\textquotesingle s training.}
+\caption{RCPO multipliers at the end of each fold\textquotesingle s training.\label{tab-lagrangian-fu}}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}lllllllllllllll@{}}
 \toprule
@@ -683,7 +689,7 @@ The simulated market supports two analyses the ETF data cannot: a full 2$\times$
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Out-of-sample performance on the stitched walk-forward test period (3 folds, 755 trading days, net of all frictions). PPO rows: mean $\pm$ standard deviation across 3 training seeds. Bold marks the best value in each column. \emph{Note:} CVaR\textsubscript{95} is the daily historical expected shortfall of net returns. Annualised return is geometric; Sharpe and Sortino use a zero risk-free rate.}
+\caption{Out-of-sample performance on the stitched walk-forward test period (3 folds, 755 trading days, net of all frictions). PPO rows: mean $\pm$ standard deviation across 3 training seeds. Bold marks the best value in each column.\label{tab-main-syn} \emph{Note:} CVaR\textsubscript{95} is the daily historical expected shortfall of net returns. Annualised return is geometric; Sharpe and Sortino use a zero risk-free rate.}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}lllllllll@{}}
 \toprule
@@ -704,7 +710,7 @@ HRP & 88.5 & 23.6 & \textbf{19.5} & 1.18 & 1.82 & 17.9 & 1.32 & \textbf{2.76} \\
 \end{adjustbox}
 \end{table}
 
-The pattern matches the market data. No PPO variant beats 1/N after costs (best: D at 1.25 against 1.39; E $-$0.16, p = 0.011). The drawdown term does the useful work: adding it (A $\to$ C) cuts maximum drawdown from 23.9\% to 17.7\%, halves turnover and shrinks the cross-seed standard deviation of cumulative return from 50 to 21 points, with no Sharpe change (p = 0.71). Adding CVaR to the drawdown term (C $\to$ D), or rescaling both multipliers (D $\to$ E), changes nothing measurable. CVaR alone at $\lambda_1$ = 1 (B) is the worst variant (Sharpe 0.82, gross $-$0.37 against 1/N, p = 0.004) and did not, as we had expected, collapse to cash: it held 17\% cash, like the others. Unlike the ETF study, the agents show no pre-cost edge here (gross $\Delta$Sharpe against 1/N between $-$0.06 and +0.04 for A, C, D and E), and their timing contribution is negative ($-$0.04 to $-$0.09; appendix Table 27). The synthetic market\textquotesingle s latent alpha was not learned in a way that generalised.
+The pattern matches the market data. No PPO variant beats 1/N after costs (best: D at 1.25 against 1.39; E $-$0.16, p = 0.011). The drawdown term does the useful work: adding it (A $\to$ C) cuts maximum drawdown from 23.9\% to 17.7\%, halves turnover and shrinks the cross-seed standard deviation of cumulative return from 50 to 21 points, with no Sharpe change (p = 0.71). Adding CVaR to the drawdown term (C $\to$ D), or rescaling both multipliers (D $\to$ E), changes nothing measurable. CVaR alone at $\lambda_1$ = 1 (B) is the worst variant (Sharpe 0.82, gross $-$0.37 against 1/N, p = 0.004) and did not, as we had expected, collapse to cash: it held 17\% cash, like the others. Unlike the ETF study, the agents show no pre-cost edge here (gross $\Delta$Sharpe against 1/N between $-$0.06 and +0.04 for A, C, D and E), and their timing contribution is negative ($-$0.04 to $-$0.09; appendix Table~\ref{tab-timing-syn}). The synthetic market\textquotesingle s latent alpha was not learned in a way that generalised.
 
 \begin{figure}
 \centering
@@ -714,11 +720,11 @@ The pattern matches the market data. No PPO variant beats 1/N after costs (best:
 
 \subsection{Selection-free robustness: training budget and the untrained policy}\label{selection-free-robustness-training-budget-and-the-untrained-policy}
 
-Validation-based checkpoint selection interacts with the penalties. For C, D and E, a checkpoint at or before 40k steps won in 78--89\% of runs (median 20k, the first evaluation); for A and B the median was 80k--100k. Table 17 and Figure 9 therefore re-evaluate every agent at fixed budgets.
+Validation-based checkpoint selection interacts with the penalties. For C, D and E, a checkpoint at or before 40k steps won in 78--89\% of runs (median 20k, the first evaluation); for A and B the median was 80k--100k. Table~\ref{tab-checkpoints-syn} and Figure~\ref{fig-ckpt-syn} therefore re-evaluate every agent at fixed budgets.
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Selection-free robustness check (controlled study). Every agent evaluated out of sample at fixed training budgets, versus the untrained policy. Mean $\pm$ std over seeds.}
+\caption{Selection-free robustness check (controlled study). Every agent evaluated out of sample at fixed training budgets, versus the untrained policy. Mean $\pm$ std over seeds.\label{tab-checkpoints-syn}}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}lllllll@{}}
 \toprule
@@ -756,17 +762,23 @@ PPO-E $\cdot$ calibrated CVaR + DD {($\lambda_1$=0.05, $\lambda_2$=0.5)} & 50k &
 \caption{Simulated market: out-of-sample performance at fixed training budgets (mean $\pm$ std over seeds). The dashed line is the untrained policy.}\label{fig-ckpt-syn}
 \end{figure}
 
-\textbf{R4.} \textbf{More training makes every variant worse out of sample.} From 50k to 150k steps, vanilla A\textquotesingle s Sharpe falls from 1.24 to 1.04 while its turnover rises from 38\% to 65\% a day. In-sample episode Sharpe keeps rising (to about 8), a clear sign of overfitting to the four-year window. The same pattern appears in fold 0 of the ETF study (Figure 5: in-sample Sharpe about 4 after 100k steps, against 0.38 out of sample).
+\textbf{R4.} \textbf{More training makes every variant worse out of sample.} From 50k to 150k steps, vanilla A\textquotesingle s Sharpe falls from 1.24 to 1.04 while its turnover rises from 38\% to 65\% a day. In-sample episode Sharpe keeps rising (to about 8), a clear sign of overfitting to the four-year window. The same pattern appears in fold 0 of the ETF study (Figure~\ref{fig-training-real}: in-sample Sharpe about 4 after 100k steps, against 0.38 out of sample).
 
 \textbf{R5.} \textbf{The drawdown penalty\textquotesingle s benefit survives without selection, but is smaller.} At equal budgets, C, D and E have 2.1--4.1 points lower maximum drawdown and 11--28\% lower turnover than A, with indistinguishable Sharpe ratios (p $\ge$ 0.30 at every budget). About half of the selected models\textquotesingle{} 6-point drawdown improvement comes from the penalty itself; the rest comes from selection favouring earlier, less-trained policies. This motivated the no-selection protocol of the ETF study.
 
-\textbf{R6.} \textbf{The untrained policy dominates.} It beats every trained agent at every budget on Sharpe (1.38) and cost (37 bp); on drawdown and CVaR, only the validation-selected penalised agents come within 0.1 points of it. On ground-truth regimes, no agent raises its cash weight materially in stress (at most +3.5 points; correlation with trailing volatility $-$0.11 to +0.07; appendix Table 28).
+\textbf{R6.} \textbf{The untrained policy dominates.} It beats every trained agent at every budget on Sharpe (1.38) and cost (37 bp); on drawdown and CVaR, only the validation-selected penalised agents come within 0.1 points of it. On ground-truth regimes, no agent raises its cash weight materially in stress (at most +3.5 points; correlation with trailing volatility $-$0.11 to +0.07; appendix Table~\ref{tab-derisk-syn}).
 
 \section{Discussion}\label{s7}
 
 \subsection{Execution design, not tail-risk shaping, governs net performance}\label{execution-design-not-tail-risk-shaping-governs-net-performance}
 
 The ETF results separate two questions that headline Sharpe ratios mix up: can a PPO allocator find signal, and can it trade that signal profitably? On liquid multi-asset ETFs it can find signal. Every variant beats 1/N before costs, and the edge comes from timing rather than static tilts. It cannot trade that signal profitably, because the policy re-allocates about half the book every day, and that costs 3--4.5\% a year even at a few basis points per trade. Tail-risk penalties do not touch this problem; they act on a different margin. Execution design does: partial adjustment removed about 90\% of trading and moved every smoothed variant to parity with 1/N (R7). It did so by slowing the policy below the horizon of its own signal, so the edge went with the cost (R8). The agents never blew up: vanilla PPO\textquotesingle s worst drawdown was 2.3 points worse than 1/N\textquotesingle s on the ETF data and 3 points worse on the simulated market. Their real failure modes were cost, overfitting and seed instability.
+
+\subsection{A temporal mismatch between signal horizon and trading speed}\label{a-temporal-mismatch-between-signal-horizon-and-trading-speed}
+
+The ETF results reveal a structural tension in DRL portfolio design. The signal the agents learn is short-lived: it is worth up to +0.17 Sharpe before costs when the book is re-optimised daily, and nothing once trading is slowed to a one-week half-life (R8). The frictions, meanwhile, are charged on every unit traded: linear costs for commission and spread, plus impact that rises with the square root of trade size. A policy that re-targets each day pays these costs on every change of view, so a signal that decays within days is consumed by the cost of trading it. A fixed slow-down cannot fix this: it imposes a holding period longer than the signal\textquotesingle s life.
+
+The deeper cause is that a target-weight policy is myopic about execution. Each day it outputs where it would like to be, with no explicit representation of how long it expects to hold a position or what reversing it will cost. Costs enter the reward only on the day a trade happens, so the link between today\textquotesingle s entry and next week\textquotesingle s exit has to be learned through discounted credit assignment, which these agents evidently did not achieve. Short-horizon alpha can survive linear and impact costs only if the agent plans execution across steps. That could mean choosing both a target and a trading speed, as in the aim-portfolio solution of Gârleanu and Pedersen \cite{r46}, where the speed depends on alpha decay and cost. Or it could mean shaping the reward with costs that account for holding periods, such as charging the expected round-trip cost of a position when it is opened. Neither fixed reward penalties nor fixed execution smoothing, the two tools tested here, provides this.
 
 \subsection{What the penalties do}\label{what-the-penalties-do}
 
@@ -778,7 +790,7 @@ The following is a hypothesis consistent with the evidence; we have not tested i
 
 \subsection{What a successful design would need}\label{what-a-successful-design-would-need}
 
-The follow-up tests the obvious fixes and narrows down what is missing. A fixed trading speed resolves the cost problem but loses the alpha, because the signal\textquotesingle s horizon (days) is shorter than the smoothing half-life (about a week). An allocator that keeps its edge net of costs must therefore \textbf{match trading speed to the signal horizon}. Options include learning the adjustment rate as part of the action, optimising a cost-aware objective in which the policy forecasts returns over the trading horizon (as in Gârleanu--Pedersen \cite{r46}), or separating a slow aim-portfolio policy from a fast execution policy. On the risk side, neither fixed nor binding constraints produced \textbf{state-dependent risk management}. That probably requires risk information the agent can act on before losses arrive: forecast volatility or correlation regimes in the state, and a distributional critic for the CVaR of the return-to-go \cite{r20,r21} rather than a penalty on realised history. Finally, \textbf{regularisation against overfitting} (smaller networks, shorter training, early stopping by design) remains necessary, since out-of-sample performance falls with training on both datasets.
+The follow-up tests the obvious fixes and narrows down what is missing. Following \S{}7.2, an allocator that keeps its edge net of costs must \textbf{match trading speed to the signal horizon}. Options include learning the adjustment rate as part of the action, optimising a cost-aware objective in which the policy forecasts returns over the trading horizon (as in Gârleanu--Pedersen \cite{r46}), or separating a slow aim-portfolio policy from a fast execution policy. On the risk side, neither fixed nor binding constraints produced \textbf{state-dependent risk management}. That probably requires risk information the agent can act on before losses arrive: forecast volatility or correlation regimes in the state, and a distributional critic for the CVaR of the return-to-go \cite{r20,r21} rather than a penalty on realised history. Finally, \textbf{regularisation against overfitting} (smaller networks, shorter training, early stopping by design) remains necessary, since out-of-sample performance falls with training on both datasets.
 
 \section{Limitations}\label{s8}
 
@@ -794,6 +806,8 @@ The follow-up tests the obvious fixes and narrows down what is missing. A fixed 
   \textbf{Smoothing design.} The trading speed (10\% a day) and band (1\%) are fixed, not learned or tuned. Every test fold starts from cash, so smoothed agents spend their first \textasciitilde21 days per fold (8.3\% of test days) ramping up, holding 41--46\% cash in that period against 6--13\% afterwards. This depresses their returns slightly and inflates their average cash relative to the baselines, which invest fully on day one.
 \item
   \textbf{Statistical power.} With 3,527 daily returns, Sharpe differences of about 0.15--0.2 between strongly correlated strategies are detectable, but differences among PPO variants mostly are not. Three seeds per configuration is a minimum, and p-values are uncorrected except where stated.
+\item
+  \textbf{Seed variance.} Outcomes vary across training seeds: the standard deviation of Sharpe is 0.05--0.13 on ETFs and up to 0.26 on the simulated market. Averaging the three seeds\textquotesingle{} returns, an ensemble of independently trained agents, raises Sharpe by only 0.01--0.05 and lowers maximum drawdown by 0.2--2.3 points, and changes no conclusion. Practitioners replicating this work could try larger rollout batches, narrower networks with stronger regularisation, or ensembles that average target \emph{weights} rather than returns. The last would also net out offsetting trades across members and so lower costs. We did not test these, and we would expect them to reduce variance more than they change mean performance.
 \item
   \textbf{Frictions.} The cost parameters (1 bp commission, 2 bp half-spread, square-root impact) are plausible for institutional ETF trading but not calibrated to a particular desk. Lower costs would narrow the net gap and could reverse it: before costs, PPO is ahead.
 \item
@@ -877,7 +891,7 @@ python scripts/build_latex.py && (cd paper/latex && tectonic main.tex)       # P
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{ETF study: walk-forward fold calendar and the share of named-stress days in each window.}
+\caption{ETF study: walk-forward fold calendar and the share of named-stress days in each window.\label{tab-fold-cal}}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}lllll@{}}
 \toprule
@@ -904,7 +918,7 @@ F13 & 2021-09-30 $\to$ 2025-10-06 & 22.9\% & 2025-10-14 $\to$ 2026-10-14 & 0.0\%
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Out-of-sample Sharpe ratio in each walk-forward fold (PPO: mean over seeds).}
+\caption{Out-of-sample Sharpe ratio in each walk-forward fold (PPO: mean over seeds).\label{tab-folds-real}}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}lllllllllllllll@{}}
 \toprule
@@ -929,7 +943,7 @@ Untrained policy (1/(N+1) incl. cash) & $-$0.04 & 0.96 & $-$0.41 & 1.05 & 1.32 &
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Every PPO training seed (stitched out-of-sample track).}
+\caption{Every PPO training seed (stitched out-of-sample track).\label{tab-seeds-real}}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}llllllllll@{}}
 \toprule
@@ -960,7 +974,7 @@ PPO-R $\cdot$ RCPO (adaptive $\lambda$) {(adaptive $\lambda$)} & 2 & 23.2 & 0.21
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Out-of-sample Sharpe ratio in each walk-forward fold (PPO: mean over seeds).}
+\caption{Out-of-sample Sharpe ratio in each walk-forward fold (PPO: mean over seeds).\label{tab-folds-fu}}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}lllllllllllllll@{}}
 \toprule
@@ -983,7 +997,7 @@ Untrained policy (1/(N+1) incl. cash) & $-$0.04 & 0.96 & $-$0.41 & 1.05 & 1.32 &
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Regime-conditional statistics of net daily returns (3,136 calm and 391 stress days out of sample). PPO rows average the per-seed statistics. \emph{Note:} Regime labels are never observed by any strategy; they are used only for this analysis.}
+\caption{Regime-conditional statistics of net daily returns (3,136 calm and 391 stress days out of sample). PPO rows average the per-seed statistics.\label{tab-regime-fu} \emph{Note:} Regime labels are never observed by any strategy; they are used only for this analysis.}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}lllllllll@{}}
 \toprule
@@ -1020,7 +1034,7 @@ Untrained policy (1/(N+1) incl. cash) & 10.9 & 7.10 & 0.97 & $-$2.57 & $-$39.5 &
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Simulated market descriptive statistics (3,000 days; 16.6\% stress; 18 stress episodes, mean length 27.7 days). Asset labels are nominal. \emph{Note:} Average pairwise correlation 0.27 in calm and 0.61 in stress regimes.}
+\caption{Simulated market descriptive statistics (3,000 days; 16.6\% stress; 18 stress episodes, mean length 27.7 days). Asset labels are nominal.\label{tab-syn-data} \emph{Note:} Average pairwise correlation 0.27 in calm and 0.61 in stress regimes.}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}llllllll@{}}
 \toprule
@@ -1038,7 +1052,7 @@ COMMODITY & 3.81 & 24.79 & 19.23 & 42.89 & 0.32 & 4.20 & $-$9.66 \\
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Trading activity, transaction costs and allocation behaviour over the 755-day out-of-sample period. Each fold starts from cash with a \$10m NAV. \emph{Note:} Costs sum commission, half-spread, temporary and permanent impact, each period expressed as a fraction of pre-trade NAV. Effective N = ($\Sigma$\textbar w\textbar)$^2$ / $\Sigma$w$^2$.}
+\caption{Trading activity, transaction costs and allocation behaviour over the 755-day out-of-sample period. Each fold starts from cash with a \$10m NAV.\label{tab-costs-syn} \emph{Note:} Costs sum commission, half-spread, temporary and permanent impact, each period expressed as a fraction of pre-trade NAV. Effective N = ($\Sigma$\textbar w\textbar)$^2$ / $\Sigma$w$^2$.}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}llllllll@{}}
 \toprule
@@ -1061,7 +1075,7 @@ HRP & 0.8 & 2 & 0.3 & 0.09 & 100.0 & 2.74 & 63.2 \\
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Paired circular block-bootstrap tests of annualised Sharpe-ratio differences (block length 21 days, 2,000 replications) on net returns; PPO series are the equal-weight average of seeds. \emph{Note:} * p \textless{} 0.05, ** p \textless{} 0.01 (two-sided, uncorrected).}
+\caption{Paired circular block-bootstrap tests of annualised Sharpe-ratio differences (block length 21 days, 2,000 replications) on net returns; PPO series are the equal-weight average of seeds.\label{tab-sig-syn} \emph{Note:} * p \textless{} 0.05, ** p \textless{} 0.01 (two-sided, uncorrected).}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}lllll@{}}
 \toprule
@@ -1087,7 +1101,7 @@ HRP & Equal Weight (1/N) & $-$0.205 & {[}$-$0.600, 0.164{]} & 0.290 \\
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Regime-conditional statistics of net daily returns (607 calm and 148 stress days out of sample). PPO rows average the per-seed statistics. \emph{Note:} Regime labels are never observed by any strategy; they are used only for this analysis.}
+\caption{Regime-conditional statistics of net daily returns (607 calm and 148 stress days out of sample). PPO rows average the per-seed statistics.\label{tab-regime-syn} \emph{Note:} Regime labels are never observed by any strategy; they are used only for this analysis.}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}lllllllll@{}}
 \toprule
@@ -1110,7 +1124,7 @@ HRP & 26.3 & 12.28 & 1.39 & $-$2.86 & 9.8 & 36.37 & 4.68 & $-$6.55 \\
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Timing versus static tilts, before costs. The static-tilt portfolio holds each variant\textquotesingle s average out-of-sample weights constantly (rebalanced daily, no costs); the difference to the actual policy\textquotesingle s gross Sharpe is the contribution of day-to-day re-allocation.}
+\caption{Timing versus static tilts, before costs. The static-tilt portfolio holds each variant\textquotesingle s average out-of-sample weights constantly (rebalanced daily, no costs); the difference to the actual policy\textquotesingle s gross Sharpe is the contribution of day-to-day re-allocation.\label{tab-timing-syn}}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}lllll@{}}
 \toprule
@@ -1129,7 +1143,7 @@ PPO-E $\cdot$ calibrated CVaR + DD {($\lambda_1$=0.05, $\lambda_2$=0.5)} & 1.40 
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Is de-risking state-dependent? Average cash weight by regime, and the correlation between cash weight and the portfolio\textquotesingle s trailing realised volatility (mean $\pm$ std over seeds).}
+\caption{Is de-risking state-dependent? Average cash weight by regime, and the correlation between cash weight and the portfolio\textquotesingle s trailing realised volatility (mean $\pm$ std over seeds).\label{tab-derisk-syn}}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}llll@{}}
 \toprule
@@ -1155,7 +1169,7 @@ PPO-E $\cdot$ calibrated CVaR + DD {($\lambda_1$=0.05, $\lambda_2$=0.5)} & 16.8{
 
 \begin{table}[!htbp]
 \centering\scriptsize
-\caption{Environment, friction and reward parameters (both studies).}
+\caption{Environment, friction and reward parameters (both studies).\label{tab-env}}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}llll@{}}
 \toprule
