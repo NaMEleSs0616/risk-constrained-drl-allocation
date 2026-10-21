@@ -20,7 +20,9 @@ scripts/make_figures.py        paper figures from outputs/  ->  paper/figures/
 scripts/build_paper.py         fills paper tables from results CSVs, numbers tables/figures -> paper/paper.html
 scripts/download_data.py       daily adjusted OHLCV for the 10-ETF universe (Yahoo Finance) -> data/
 scripts/run_real_experiments.py  14-fold warm-started walk-forward study on ETFs (A, D, E, T, RCPO, overlay)
-scripts/extra_analysis.py      gross-of-cost, tracking, timing-vs-tilt, de-risking, RCPO multiplier paths
+scripts/extra_analysis.py      gross-of-cost, tracking, timing-vs-tilt, de-risking, exposure-matched 1/N, RCPO paths
+scripts/compare_studies.py     paired tests: follow-up variants vs their original-run counterparts
+scripts/build_latex.py         HTML paper -> paper/latex/main.tex (+ figures); compile with `tectonic main.tex`
 main.py                       CLI: train | evaluate | backtest | experiments
 tests/                        pytest suite (env accounting, reward/CVaR, metrics, baselines, model)
 ```
@@ -29,7 +31,7 @@ tests/                        pytest suite (env accounting, reward/CVaR, metrics
 
 ```bash
 pip install -r requirements.txt
-pytest                                   # 135 tests
+pytest                                   # 137 tests
 python main.py experiments --smoke       # ~30 s end-to-end pipeline check
 python scripts/run_experiments.py        # full ablation study -> outputs/
 tensorboard --logdir outputs/models      # training curves
@@ -55,8 +57,10 @@ On 10 liquid multi-asset ETFs over 14 walk-forward years (Oct 2012 to Oct 2026),
 - **Before costs, PPO beats 1/N.** Gross Sharpe ratios are 0.70–0.81. The edge comes from day-to-day timing, not static tilts, but trading it means 37–49% turnover per day, which costs 3–4.5% of NAV a year.
 - **Drawdown penalties lower tail risk relative to vanilla PPO.** Max drawdown falls from 22% to about 19–20%, at no significant Sharpe cost.
 - **The agents don't learn to de-risk in stress periods.** RCPO's constraints rarely bound, and the vol-target overlay lowers Sharpe.
+- **Follow-up (`outputs_real_followup/`): smoothed execution brings PPO to parity with 1/N.** Executing only 10% of the gap to the target each day cuts turnover by about 90% and raises net Sharpe by about 0.2 (p = 0.006 for the penalised variant), but it also removes the pre-cost timing edge.
+- **The best risk profile is a de-levered 1/N.** The smoothed, penalised agent has the lowest drawdown of all strategies (16.9%), but 1/N de-levered to the same exposure matches it. RCPO with 1/N-matched targets binds but doesn't help.
 
-The simulated-market study (`outputs/`) confirms the regularisation reading and shows that more training lowers out-of-sample performance. The full write-up is in `paper/paper.html`.
+The simulated-market study (`outputs/`) confirms the regularisation reading and shows that more training lowers out-of-sample performance. The full write-up is in `paper/paper.html`, with a LaTeX/PDF version in `paper/latex/`.
 
 ## Design notes
 

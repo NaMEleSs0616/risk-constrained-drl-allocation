@@ -119,6 +119,7 @@ class Variant:
     reward_overrides: dict[str, float]
     lagrangian: dict[str, float] | None = None
     vol_target_overlay: float | None = None
+    env_overrides: dict[str, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -164,6 +165,7 @@ def build_variants(ecfg: Mapping[str, Any], selected: Sequence[str] | None) -> l
             reward_overrides=overrides,
             lagrangian={kk: float(vv) for kk, vv in rcpo.items()} if rcpo else None,
             vol_target_overlay=float(spec["vol_target_overlay"]) if spec.get("vol_target_overlay") else None,
+            env_overrides={kk: float(vv) for kk, vv in spec["env"].items()} if spec.get("env") else None,
         ))
     return out
 
@@ -213,10 +215,12 @@ def run_job(
                 seed=1000 * job.seed + job.fold.index,
                 log_stdout=False,
                 lagrangian=job.variant.lagrangian,
+                env_overrides=job.variant.env_overrides,
             )
             model_path, vec_path = result.best_model_path, result.vecnormalize_path
         env = make_eval_env(
-            cfg, market, featureset, job.fold.evaluation_range(market.n_periods), job.variant.reward_overrides
+            cfg, market, featureset, job.fold.evaluation_range(market.n_periods), job.variant.reward_overrides,
+            job.variant.env_overrides,
         )
         records = run_episode(env, action_fn=load_policy(model_path, env, vec_path, deterministic))
         records = records.assign(fold=job.fold.index, seed=job.seed)

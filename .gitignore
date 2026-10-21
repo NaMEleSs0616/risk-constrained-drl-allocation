@@ -18,6 +18,12 @@ outputs/*.log
 outputs_real/models/
 outputs_real/*.pkl
 outputs_real/*.log
+outputs_real_followup/models/
+outputs_real_followup/*.pkl
+outputs_real_followup/*.log
+
+# LaTeX build logs (main.tex and main.pdf are committed)
+paper/latex/*.log
 
 # Raw Yahoo Finance data is not redistributed - rebuild with scripts/download_data.py
 data/*.csv

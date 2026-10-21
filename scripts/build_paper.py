@@ -30,6 +30,8 @@ import pandas as pd
 VARIANT_SHORT = {
     "A": "A · return only", "B": "B · CVaR only", "C": "C · drawdown only", "D": "D · CVaR + drawdown",
     "E": "E · calibrated CVaR + DD", "T": "T · turnover penalty", "R": "R · RCPO (adaptive λ)",
+    "S": "S · smoothed execution", "SE": "SE · smoothed + calibrated CVaR + DD",
+    "RT": "RT · RCPO, 1/N-matched targets", "SRT": "SRT · smoothed + RCPO 1/N-matched",
 }
 
 
@@ -38,7 +40,7 @@ VARIANT_SHORT = {
 # ---------------------------------------------------------------------------
 def label(name: str) -> str:
     """Display label for a strategy name."""
-    m = re.match(r"PPO-([A-Z]) .*?\((l1=[^,]+), (l2=[^)]+)\)(.*)", name)
+    m = re.match(r"PPO-([A-Z]+) .*?\((l1=[^,]+), (l2=[^)]+)\)(.*)", name)
     if m:
         letter, l1, l2, rest = m.groups()
         lam = "adaptive λ" if "auto" in l1 else f"λ₁={l1[3:]}, λ₂={l2[3:]}"
@@ -279,15 +281,16 @@ def t_lagrangian(res: Path, tid: str) -> str:
     if not path.exists():
         return ""
     lp = pd.read_csv(path)
-    g = lp.groupby("fold")[["lambda_cvar", "lambda_drawdown"]].agg(["mean", "max"])
-    folds = list(g.index)
-    rows = [["λ₁ (CVaR), mean over seeds"] + [fmt(g.at[f, ("lambda_cvar", "mean")], ".2f") for f in folds],
-            ["λ₁ (CVaR), max over seeds"] + [fmt(g.at[f, ("lambda_cvar", "max")], ".2f") for f in folds],
-            ["λ₂ (drawdown), mean over seeds"] + [fmt(g.at[f, ("lambda_drawdown", "mean")], ".2f") for f in folds],
-            ["λ₂ (drawdown), max over seeds"] + [fmt(g.at[f, ("lambda_drawdown", "max")], ".2f") for f in folds]]
-    return render(["Multiplier"] + [f"F{int(str(f).split('_')[-1])}" for f in folds], rows,
-                  "RCPO multipliers at the end of each fold's training (variant R).", tid)
-
+    folds = sorted(lp["fold"].unique())
+    rows = []
+    for variant, g in lp.groupby("variant", sort=True):
+        m = g.groupby("fold")[["lambda_cvar", "lambda_drawdown"]].mean()
+        name = {"r_rcpo": "R", "rt_rcpo_ew": "RT", "srt_smoothed_rcpo_ew": "SRT"}.get(variant, variant)
+        rows.append([f"{name}: λ₁ (CVaR)"] + [fmt(m.at[f, "lambda_cvar"], ".2f") if f in m.index else "–" for f in folds])
+        rows.append([f"{name}: λ₂ (drawdown)"] + [fmt(m.at[f, "lambda_drawdown"], ".2f") if f in m.index else "–"
+                                                for f in folds])
+    return render(["Multiplier (mean over seeds)"] + [f"F{int(str(f).split('_')[-1])}" for f in folds], rows,
+                  "RCPO multipliers at the end of each fold's training.", tid)
 
 def t_timing(res: Path, tid: str) -> str:
     t = pd.read_csv(res / "timing_vs_tilt.csv")
@@ -298,12 +301,44 @@ def t_timing(res: Path, tid: str) -> str:
                      fmt(100 * r["cash"], ".1f") if "cash" in r and pd.notna(r.get("cash")) else "–"])
     return render(["Strategy", "Static tilt (gross Sharpe)", "Actual policy (gross Sharpe)", "Timing contribution",
                    "Avg cash (%)"], rows,
-                  "Timing versus static tilts, before costs. \"Static tilt\" holds each variant's average "
+                  "Timing versus static tilts, before costs. The static-tilt portfolio holds each variant's average "
                   "out-of-sample weights constantly (rebalanced daily, no costs); the difference to the actual "
                   "policy's gross Sharpe is the contribution of day-to-day re-allocation.", tid)
 
 
+def t_compare(res: Path, tid: str) -> str:
+    c = pd.read_csv(res / "followup_vs_original.csv")
+    rows = [[label(r["strategy"]), label(r["versus"]),
+             f"{fmt(r['net_diff'], '+.3f')} [{fmt(r['net_ci_low'], '.3f')}, {fmt(r['net_ci_high'], '.3f')}]",
+             f"{fmt(r['net_p'], '.3f')}{stars(r['net_p'])}",
+             f"{fmt(r['gross_diff'], '+.3f')} (p={fmt(r['gross_p'], '.3f')}{stars(r['gross_p'])})",
+             f"{fmt(100 * r['turnover_a'], '.1f')} vs {fmt(100 * r['turnover_b'], '.1f')}",
+             f"{fmt(r['maxdd_a'], '.1f')} vs {fmt(r['maxdd_b'], '.1f')}"] for _, r in c.iterrows()]
+    return render(["Follow-up variant", "Versus", "Net ΔSharpe [95% CI]", "p (net)", "Gross ΔSharpe",
+                   "Turnover %/day (new vs old)", "MaxDD % (new vs old)"], rows,
+                  "Follow-up variants against their counterparts in the original ETF run (same data, folds, seeds "
+                  "and test dates). Paired block-bootstrap tests on seed-averaged daily returns; MaxDD here is "
+                  "computed on the seed-averaged return series.", tid, num_from=2,
+                  notes="* p &lt; 0.05, ** p &lt; 0.01, uncorrected.")
+
+
+def t_delev(res: Path, tid: str) -> str:
+    d = pd.read_csv(res / "delevered_ew_control.csv")
+    rows = []
+    for _, r in d.iterrows():
+        rows.append([label(r["strategy"]), fmt(100 * r["avg_cash"], ".1f"),
+                     f"{fmt(r['sharpe'], '.2f')} vs {fmt(r['sharpe_delev'], '.2f')} (p={fmt(r['p_value'], '.2f')})",
+                     f"{fmt(r['maxdd'], '.1f')} vs {fmt(r['maxdd_delev'], '.1f')}",
+                     f"{fmt(r.get('stress_cvar'), '.2f')} vs {fmt(r.get('stress_cvar_delev'), '.2f')}",
+                     f"{fmt(r.get('stress_worst'), '.2f')} vs {fmt(r.get('stress_worst_delev'), '.2f')}"])
+    return render(["Variant", "Avg cash (%)", "Sharpe: agent vs control", "MaxDD %: agent vs control",
+                   "Stress CVaR<sub>95</sub> %: agent vs control", "Worst stress day %: agent vs control"], rows,
+                  "Exposure-matched control. Each agent (seed-averaged returns) against 1/N scaled to the agent's "
+                  "average invested fraction, with the remainder in zero-yield cash.", tid)
+
+
 TABLES: dict[str, Callable[[Path, str], str]] = {
+    "compare": t_compare, "delev": t_delev,
     "timing": t_timing,
     "main": t_main, "costs": t_costs, "gross": t_gross, "folds": t_folds, "regime": t_regime, "sig": t_sig,
     "seeds": t_seeds, "checkpoints": t_checkpoints, "derisk": t_derisk, "lagrangian": t_lagrangian,

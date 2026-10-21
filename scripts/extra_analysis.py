@@ -95,6 +95,30 @@ def main(argv: Sequence[str] | None = None) -> int:
     if lrows:
         pd.DataFrame(lrows).to_csv(res / "lagrangian_path.csv", index=False)
 
+    # Exposure-matched control: 1/N scaled to each PPO variant's average gross exposure (rest in cash).
+    from src.metrics import conditional_metrics
+
+    beh = pd.read_csv(res / "behaviour.csv", index_col=0)
+    crows = []
+    for name, by_seed in st.items():
+        if not name.startswith("PPO") or "+ vol" in name:
+            continue
+        cash = float(beh.loc[name, "avg_cash_weight"])
+        r = pd.concat([d["return"] for d in by_seed.values()], axis=1).mean(axis=1)
+        delev = ((1.0 - cash) * ew_net).reindex(r.index)
+        ma, mb = compute_performance_metrics(r), compute_performance_metrics(delev)
+        row = {"strategy": name, "avg_cash": cash, "sharpe": ma["sharpe"], "sharpe_delev": mb["sharpe"],
+               "maxdd": ma["max_drawdown_pct"], "maxdd_delev": mb["max_drawdown_pct"]}
+        test = sharpe_difference_bootstrap(r.to_numpy(), delev.to_numpy(), n_boot=2000, seed=7)
+        row.update({"diff": test["diff"], "p_value": test["p_value"]})
+        if regimes is not None:
+            mask = regimes.reindex(r.index).fillna(0).to_numpy() == 1
+            sa, sb = conditional_metrics(r.to_numpy(), mask), conditional_metrics(delev.to_numpy(), mask)
+            row.update({"stress_cvar": sa["cvar_95_pct"], "stress_cvar_delev": sb["cvar_95_pct"],
+                        "stress_worst": sa["worst_day_pct"], "stress_worst_delev": sb["worst_day_pct"]})
+        crows.append(row)
+    pd.DataFrame(crows).to_csv(res / "delevered_ew_control.csv", index=False)
+
     # Timing vs static tilt: gross Sharpe of holding each variant's average weights.
     from src.train import prepare_data
     from src.utils import load_config

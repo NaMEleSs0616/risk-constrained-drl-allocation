@@ -154,6 +154,8 @@ class EnvConfig:
     bankruptcy_threshold: float = 0.10
     portfolio_vol_window: int = 21
     periods_per_year: int = 252
+    trade_rate: float = 1.0
+    no_trade_band: float = 0.0
     friction: FrictionConfig = field(default_factory=FrictionConfig)
 
     def __post_init__(self) -> None:
@@ -167,6 +169,10 @@ class EnvConfig:
             raise ValueError("lookback must be >= 1")
         if self.max_gross_leverage <= 0:
             raise ValueError("max_gross_leverage must be positive")
+        if not 0.0 < self.trade_rate <= 1.0:
+            raise ValueError("trade_rate must be in (0, 1]")
+        if self.no_trade_band < 0:
+            raise ValueError("no_trade_band must be non-negative")
 
     @classmethod
     def from_dict(cls, cfg: Mapping[str, Any]) -> "EnvConfig":
@@ -528,6 +534,12 @@ class PortfolioEnv(gym.Env):
         if self._t >= self.end_index - 1:
             raise RuntimeError("Episode is over; call reset()")
         w_target = np.nan_to_num(np.asarray(target_weights, dtype=np.float64), nan=0.0)
+        if self.config.trade_rate < 1.0 or self.config.no_trade_band > 0.0:
+            # Partial adjustment toward the target ("aim") portfolio, plus a no-trade band.
+            w_cur = self.current_weights
+            w_target = w_cur + self.config.trade_rate * (w_target - w_cur)
+            if np.abs(w_target - w_cur).sum() < self.config.no_trade_band:
+                w_target = w_cur
         fc = self.config.friction
         t = self._t
         p_t = self.prices[t]

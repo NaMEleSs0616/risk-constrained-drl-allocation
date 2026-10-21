@@ -299,3 +299,18 @@ def test_observation_has_no_lookahead(make_env, market_arrays) -> None:
     env_b = PortfolioEnv(future, prices, volumes, config=env_a.config, reward_config=env_a.reward_fn.config)
     obs_b, _ = env_b.reset(seed=0, options={"start_index": 30})
     np.testing.assert_array_equal(obs_a, obs_b)
+
+
+def test_partial_adjustment_and_no_trade_band(make_env) -> None:
+    env = make_env(trade_rate=0.25)
+    env.reset(seed=0)
+    w0 = env.current_weights.copy()  # all cash -> zeros
+    target = np.array([0.4, 0.4, 0.0])
+    _, _, _, _, info = env.step_with_weights(target)
+    np.testing.assert_allclose(info["target_weights"], w0 + 0.25 * (target - w0))
+    banded = make_env(trade_rate=1.0, no_trade_band=0.5)
+    banded.reset(seed=0)
+    _, _, _, _, info = banded.step_with_weights(np.array([0.1, 0.1, 0.1]))  # L1 change 0.3 < band
+    assert info["turnover"] == 0.0 and info["costs"]["total"] == 0.0
+    with pytest.raises(ValueError):
+        make_env(trade_rate=0.0)
