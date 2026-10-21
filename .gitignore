@@ -29,3 +29,4 @@ paper/latex/*.log
 data/*.csv
 
 .DS_Store
+outputs_real_nextopen_aborted/

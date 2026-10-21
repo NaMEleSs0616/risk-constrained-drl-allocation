@@ -262,3 +262,15 @@ def test_ew_constraint_targets_are_positive_and_causal() -> None:
 
     later = MarketData(data.dates, data.assets, data.open, data.high, data.low, shocked, data.volume)
     assert ew_constraint_targets(later, (100, 400)) == (c1, d1)
+
+
+def test_features_invariant_to_price_rescaling() -> None:
+    """Back-adjusted data rescales all prices before a future ex-date by a constant.
+    Features must be scale-invariant, so future corporate actions cannot leak into them."""
+    from src.data import MarketData
+
+    cfg = {"windows": [5, 21], "zscore_window": 60, "zscore_min_periods": 20}
+    data = generate_synthetic_market(n_assets=3, n_periods=250, seed=6)
+    c = np.array([0.4, 0.7, 1.9])[None, :]  # per-asset adjustment factors
+    scaled = MarketData(data.dates, data.assets, data.open * c, data.high * c, data.low * c, data.close * c, data.volume)
+    np.testing.assert_allclose(compute_features(data, cfg).values, compute_features(scaled, cfg).values, atol=1e-5)
