@@ -43,9 +43,14 @@ def make_env(market_arrays) -> Callable[..., PortfolioEnv]:
         reward: dict[str, Any] | None = None,
         prices: np.ndarray | None = None,
         start_index: int | None = None,
+        open_prices: np.ndarray | None = None,
         **env_kwargs: Any,
     ) -> PortfolioEnv:
         features, base_prices, volumes = market_arrays
+        px = base_prices if prices is None else prices
+        if open_prices is None:  # open = previous close with a small deterministic gap
+            gap = 1.0 + 0.002 * np.sin(np.arange(px.shape[0]))[:, None]
+            open_prices = np.vstack([px[:1], px[:-1]]) * gap
         fr = {
             "commission_bps": 0.0,
             "slippage_bps": 0.0,
@@ -60,16 +65,18 @@ def make_env(market_arrays) -> Callable[..., PortfolioEnv]:
             "lookback": LOOKBACK,
             "episode_length": None,
             "random_start": False,
+            "execution": "close",  # mechanics tests use the legacy convention; see test_execution_*
             "friction": FrictionConfig(**fr),
         }
         kwargs.update(env_kwargs)
         return PortfolioEnv(
             features,
-            base_prices if prices is None else prices,
+            px,
             volumes,
             config=EnvConfig(**kwargs),
             reward_config=RewardConfig(**{"min_periods": 2, **(reward or {})}),
             start_index=start_index,
+            open_prices=open_prices,
         )
 
     return _make

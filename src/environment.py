@@ -156,6 +156,7 @@ class EnvConfig:
     periods_per_year: int = 252
     trade_rate: float = 1.0
     no_trade_band: float = 0.0
+    execution: str = "next_open"
     friction: FrictionConfig = field(default_factory=FrictionConfig)
 
     def __post_init__(self) -> None:
@@ -173,6 +174,8 @@ class EnvConfig:
             raise ValueError("trade_rate must be in (0, 1]")
         if self.no_trade_band < 0:
             raise ValueError("no_trade_band must be non-negative")
+        if self.execution not in ("next_open", "next_close", "close"):
+            raise ValueError("execution must be 'next_open', 'next_close' or 'close'")
 
     @classmethod
     def from_dict(cls, cfg: Mapping[str, Any]) -> "EnvConfig":
@@ -250,6 +253,7 @@ class PortfolioEnv(gym.Env):
         asset_names: Sequence[str] | None = None,
         dates: Sequence[Any] | None = None,
         render_mode: str | None = None,
+        open_prices: np.ndarray | None = None,
     ) -> None:
         """Create the environment over the period range ``[start_index, end_index)``.
 
@@ -275,6 +279,7 @@ class PortfolioEnv(gym.Env):
 
         self.features = np.asarray(features, dtype=np.float32)
         self.prices = np.asarray(prices, dtype=np.float64)
+        self.open_prices = None if open_prices is None else np.asarray(open_prices, dtype=np.float64)
         self.volumes = np.asarray(volumes, dtype=np.float64)
         if self.features.ndim != 3:
             raise ValueError("features must have shape (T, N, F)")
@@ -283,6 +288,11 @@ class PortfolioEnv(gym.Env):
             raise ValueError("prices and volumes must have shape (T, N) matching features")
         if not np.all(np.isfinite(self.prices)) or np.any(self.prices <= 0):
             raise ValueError("prices must be finite and strictly positive")
+        if self.config.execution == "next_open":
+            if self.open_prices is None or self.open_prices.shape != self.prices.shape:
+                raise ValueError("execution='next_open' requires open_prices with the same shape as prices")
+            if not np.all(np.isfinite(self.open_prices)) or np.any(self.open_prices <= 0):
+                raise ValueError("open_prices must be finite and strictly positive")
 
         L = self.config.lookback
         self.start_index = L - 1 if start_index is None else int(start_index)
@@ -518,12 +528,13 @@ class PortfolioEnv(gym.Env):
         return self.step_with_weights(self.action_to_weights(action))
 
     def step_with_weights(
-        self, target_weights: np.ndarray
+        self, target_weights: np.ndarray | None
     ) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
         """Rebalance toward explicit target weights (used by baselines) and advance.
 
         Args:
-            target_weights: Desired asset weights ``(N,)``; cash is the residual.
+            target_weights: Desired asset weights ``(N,)``; cash is the residual. ``None``
+                means hold: no order is sent, so the book simply drifts (no costs).
 
         Returns:
             ``(observation, reward, terminated, truncated, info)``.
@@ -533,28 +544,39 @@ class PortfolioEnv(gym.Env):
         """
         if self._t >= self.end_index - 1:
             raise RuntimeError("Episode is over; call reset()")
-        w_target = np.nan_to_num(np.asarray(target_weights, dtype=np.float64), nan=0.0)
-        if self.config.trade_rate < 1.0 or self.config.no_trade_band > 0.0:
-            # Partial adjustment toward the target ("aim") portfolio, plus a no-trade band.
-            w_cur = self.current_weights
-            w_target = w_cur + self.config.trade_rate * (w_target - w_cur)
-            if np.abs(w_target - w_cur).sum() < self.config.no_trade_band:
-                w_target = w_cur
-        fc = self.config.friction
+        hold = target_weights is None
         t = self._t
-        p_t = self.prices[t]
-
-        nav_pre = self._nav_at(t)
-        trade = self._solve_trade(w_target, nav_pre, t)
+        t1 = t + 1
+        # Decision time: close of t, using information up to and including that close.
+        nav_decision = self._nav_at(t)
+        # Execution price. 'next_open': the old book is carried overnight and the order
+        # fills at the open of t+1. 'next_close': one-day delay, fill at the close of t+1.
+        # 'close': legacy same-close fill (not tradable when features use the close of t).
+        mode = self.config.execution
+        if mode == "next_open":
+            p_exec = self.open_prices[t1]
+        elif mode == "next_close":
+            p_exec = self.prices[t1]
+        else:
+            p_exec = self.prices[t]
+        nav_pre = float(self.cash + self.holdings @ p_exec)
+        w_exec = self.holdings * p_exec / nav_pre if nav_pre > _EPS else np.zeros(self.n_assets)
+        w_target = w_exec.copy() if hold else np.nan_to_num(np.asarray(target_weights, dtype=np.float64), nan=0.0)
+        if not hold and (self.config.trade_rate < 1.0 or self.config.no_trade_band > 0.0):
+            # Partial adjustment from the weights held at execution toward the target, plus a band.
+            w_target = w_exec + self.config.trade_rate * (w_target - w_exec)
+            if np.abs(w_target - w_exec).sum() < self.config.no_trade_band:
+                w_target = w_exec.copy()
+        # Costs use volatility / ADV known at decision time (data up to t).
+        trade = np.zeros(self.n_assets) if hold else self._solve_trade(w_target, nav_pre, t, p_exec)
         costs, increment = self.compute_trade_costs(trade, t)
         self.cash -= float(trade.sum()) + costs.total
-        self.holdings = self.holdings + trade / p_t
+        self.holdings = self.holdings + trade / p_exec
         self.impact_state = self.impact_state + increment
-        nav_post_trade = self._nav_at(t)
+        nav_post_trade = float(self.cash + self.holdings @ p_exec)
 
-        # ---- hold over (t, t+1]
-        t1 = t + 1
-        short_notional = float(np.sum(np.maximum(-self.holdings * p_t, 0.0)))
+        # ---- hold until the close of t+1
+        short_notional = float(np.sum(np.maximum(-self.holdings * p_exec, 0.0)))
         financing = self.cash * self._cash_daily - short_notional * self._borrow_daily
         self.cash += financing
         self.impact_state *= self._impact_decay
@@ -562,13 +584,14 @@ class PortfolioEnv(gym.Env):
         self._steps += 1
 
         nav_next = self._nav_at(t1)
-        port_ret = nav_next / nav_pre - 1.0 if nav_pre > _EPS else -1.0
+        port_ret = nav_next / nav_decision - 1.0 if nav_decision > _EPS else -1.0
         self.peak_nav = max(self.peak_nav, nav_next)
         dd = drawdown(nav_next, self.peak_nav)
         turnover = float(np.abs(trade).sum() / nav_pre) if nav_pre > _EPS else 0.0
         rb = self.reward_fn(port_ret, dd, turnover)
 
-        cost_frac = costs.total / nav_pre if nav_pre > _EPS else 0.0
+        # Cost as a fraction of decision-time NAV (same base as the return), so net + cost = gross.
+        cost_frac = costs.total / nav_decision if nav_decision > _EPS else 0.0
         self._ret_window.append(float(np.clip(port_ret, -1.0, 10.0)))
         self._ep_returns.append(float(port_ret))
         self._ep_turnover.append(turnover)
@@ -588,6 +611,8 @@ class PortfolioEnv(gym.Env):
                 "portfolio_return": float(port_ret),
                 "nav_pre_trade": nav_pre,
                 "nav_post_trade": nav_post_trade,
+                "nav_decision": nav_decision,
+                "execution_prices": p_exec,
                 "turnover": turnover,
                 "cost": float(cost_frac),
                 "costs": costs.as_dict(),
@@ -617,7 +642,8 @@ class PortfolioEnv(gym.Env):
         return self._get_obs()
 
     # ------------------------------------------------------------ helpers
-    def _solve_trade(self, w_target: np.ndarray, nav_pre: float, t: int, n_iter: int = 4) -> np.ndarray:
+    def _solve_trade(self, w_target: np.ndarray, nav_pre: float, t: int, p_exec: np.ndarray,
+                     n_iter: int = 4) -> np.ndarray:
         """Size the trade so that post-cost weights match the target.
 
         Costs are paid from the book, so sizing on the pre-trade NAV would leave
@@ -625,7 +651,7 @@ class PortfolioEnv(gym.Env):
         iteration on the post-cost NAV fixes this; it converges in 2-3 iterations
         because costs are a small fraction of NAV.
         """
-        current = self.holdings * self.prices[t]
+        current = self.holdings * p_exec
         if nav_pre <= _EPS:  # insolvent book: liquidate only
             return self._cap_participation(-current, t)
         nav_eff = nav_pre
@@ -720,6 +746,7 @@ def make_portfolio_env(
     reward_overrides: Mapping[str, Any] | None = None,
     asset_names: Sequence[str] | None = None,
     dates: Sequence[Any] | None = None,
+    open_prices: np.ndarray | None = None,
 ) -> PortfolioEnv:
     """Build a :class:`PortfolioEnv` from the full configuration dictionary.
 
@@ -752,4 +779,5 @@ def make_portfolio_env(
         end_index=end_index,
         asset_names=asset_names,
         dates=dates,
+        open_prices=open_prices,
     )

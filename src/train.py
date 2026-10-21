@@ -128,6 +128,7 @@ def make_env_factory(
             reward_overrides=reward_overrides,
             asset_names=market.assets,
             dates=list(market.dates),
+            open_prices=market.open,
         )
         env.reset(seed=seed)
         return env

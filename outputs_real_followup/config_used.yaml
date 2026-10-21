@@ -59,6 +59,7 @@ environment:
   bankruptcy_threshold: 0.1
   portfolio_vol_window: 21
   periods_per_year: 252
+  execution: close
   friction:
     commission_bps: 1.0
     slippage_bps: 2.0

@@ -7,6 +7,7 @@ import pytest
 from gymnasium.utils.env_checker import check_env
 
 from src.environment import (
+    EnvConfig,
     PortfolioEnv,
     project_to_capped_simplex,
     project_to_l1_ball,
@@ -89,9 +90,11 @@ def test_episode_truncates_at_length_and_range_end(make_env) -> None:
 def test_invalid_range_rejected(market_arrays) -> None:
     features, prices, volumes = market_arrays
     with pytest.raises(ValueError):
-        PortfolioEnv(features, prices, volumes, start_index=0)  # needs lookback - 1 history
+        PortfolioEnv(features, prices, volumes, config=EnvConfig(execution="close"), start_index=0)
     with pytest.raises(ValueError):
-        PortfolioEnv(features, prices, volumes, start_index=T - 1, end_index=T)
+        PortfolioEnv(features, prices, volumes, config=EnvConfig(execution="close"), start_index=T - 1, end_index=T)
+    with pytest.raises(ValueError):  # next-open execution needs open prices
+        PortfolioEnv(features, prices, volumes, config=EnvConfig(execution="next_open"))
 
 
 # --------------------------------------------------------------------- action transforms
@@ -314,3 +317,84 @@ def test_partial_adjustment_and_no_trade_band(make_env) -> None:
     assert info["turnover"] == 0.0 and info["costs"]["total"] == 0.0
     with pytest.raises(ValueError):
         make_env(trade_rate=0.0)
+
+
+# --------------------------------------------------------------------- execution timing
+def test_execution_next_open_timeline(make_env, market_arrays) -> None:
+    """Decide at close t, fill at open t+1, mark at close t+1; old book carried overnight."""
+    _, prices, _ = market_arrays
+    env = make_env(execution="next_open")
+    env.reset(seed=0)
+    t, opens = env.t, env.open_prices
+    target = np.array([0.5, 0.3, 0.0])
+    _, _, _, _, info = env.step_with_weights(target)  # from all cash: overnight return is 0
+    np.testing.assert_allclose(info["execution_prices"], opens[t + 1])
+    expected = float(np.sum(target * (prices[t + 1] / opens[t + 1] - 1.0)))
+    assert info["portfolio_return"] == pytest.approx(expected, rel=1e-10)
+    # Holding (None = no order): zero turnover/cost, and the return is the held book's close-to-close move.
+    h, cash, nav0, t2 = env.holdings.copy(), env.cash, env.nav, env.t
+    _, _, _, _, info = env.step_with_weights(None)
+    assert info["turnover"] == 0.0 and info["costs"]["total"] == 0.0
+    assert info["portfolio_return"] == pytest.approx((cash + h @ prices[t2 + 1]) / nav0 - 1.0, rel=1e-12)
+
+
+def test_execution_next_open_accounting(make_env) -> None:
+    env = make_env(execution="next_open", friction=FULL_FRICTION)
+    env.reset(seed=0)
+    rng = np.random.default_rng(3)
+    for _ in range(25):
+        nav_t = env.nav
+        _, _, term, trunc, info = env.step(rng.uniform(-1, 1, env.action_space.shape))
+        assert info["nav_decision"] == pytest.approx(nav_t, rel=1e-12)
+        assert info["nav_post_trade"] == pytest.approx(info["nav_pre_trade"] - info["costs"]["total"], rel=1e-10)
+        assert info["nav"] == pytest.approx(env.cash + env.holdings @ env.prices[env.t], rel=1e-12)
+        if term or trunc:
+            break
+
+
+def test_decision_ignores_information_unavailable_at_order_time() -> None:
+    """Perturbing every input from t+1 on (open, high, low, close, volume) leaves day t's
+    observation and decision unchanged; only the fill price can differ."""
+    from src.data import MarketData, generate_synthetic_market
+    from src.features import compute_features
+
+    cfg = {"windows": [5, 21], "zscore_window": 60, "zscore_min_periods": 20}
+    data = generate_synthetic_market(n_assets=3, n_periods=200, seed=4)
+    t = 120
+    k = np.where(np.arange(200) > t, 1.0, 0.0)[:, None]
+    shocked = MarketData(data.dates, data.assets, data.open * (1 + 0.3 * k), data.high * (1 + 0.5 * k),
+                         data.low * (1 - 0.2 * k), data.close * (1 + 0.4 * k), data.volume * (1 + 2.0 * k))
+    w_policy = np.random.default_rng(0).normal(size=4)
+
+    def decide(md: MarketData) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        fs = compute_features(md, cfg)
+        env = PortfolioEnv(fs.values, md.close, md.volume, config=EnvConfig(lookback=5, execution="next_open",
+                           episode_length=None, random_start=False), open_prices=md.open, start_index=fs.warmup + 4)
+        obs, _ = env.reset(options={"start_index": t})
+        action = np.tanh(w_policy * obs[:4].mean())  # any deterministic function of the observation
+        _, _, _, _, info = env.step(action)
+        return obs, info["target_weights"], info["execution_prices"]
+
+    obs_a, w_a, px_a = decide(data)
+    obs_b, w_b, px_b = decide(shocked)
+    np.testing.assert_array_equal(obs_a, obs_b)
+    np.testing.assert_array_equal(w_a, w_b)
+    assert not np.allclose(px_a, px_b)  # the fill happens at t+1 and does see the shock
+
+
+def test_buy_and_hold_does_not_retrade_under_next_open(make_env) -> None:
+    from src.backtest import run_episode
+    from src.baselines import EqualWeightStrategy
+
+    rec = run_episode(make_env(execution="next_open", friction={"commission_bps": 1.0}),
+                      weights_fn=EqualWeightStrategy(rebalance_every=None))
+    assert rec["turnover"].iloc[0] > 0.9 and (rec["turnover"].iloc[1:] == 0).all()
+
+
+def test_gross_equals_net_plus_cost_under_next_open(make_env) -> None:
+    env = make_env(execution="next_open", friction=FULL_FRICTION)
+    env.reset(seed=0)
+    nav_t = env.nav
+    _, _, _, _, info = env.step_with_weights(np.array([0.5, 0.3, 0.2]))
+    gross_nav = env.nav + info["costs"]["total"] * 1.0  # cash earns 0, so costs reduce NAV one-for-one
+    assert info["portfolio_return"] + info["cost"] == pytest.approx(gross_nav / nav_t - 1.0, rel=1e-9)
