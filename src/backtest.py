@@ -147,6 +147,7 @@ def make_eval_env(
     featureset: FeatureSet,
     period_range: Range,
     reward_overrides: Mapping[str, Any] | None = None,
+    env_overrides: Mapping[str, Any] | None = None,
 ) -> PortfolioEnv:
     """Deterministic full-range evaluation env (no random start, no early bankruptcy stop).
 
@@ -156,6 +157,7 @@ def make_eval_env(
         featureset: Features.
         period_range: ``[start, end)``.
         reward_overrides: Reward overrides (only affect the logged reward).
+        env_overrides: Variant-specific environment overrides (e.g. trade smoothing).
 
     Returns:
         The environment.
@@ -167,7 +169,8 @@ def make_eval_env(
         cfg,
         start_index=period_range[0],
         end_index=period_range[1],
-        overrides={"random_start": False, "episode_length": None, "bankruptcy_threshold": 0.0},
+        overrides={**(env_overrides or {}),
+                   "random_start": False, "episode_length": None, "bankruptcy_threshold": 0.0},
         reward_overrides=reward_overrides,
         asset_names=market.assets,
         dates=list(market.dates),

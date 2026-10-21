@@ -144,6 +144,7 @@ def build_vec_env(
     seed: int,
     training: bool,
     reward_overrides: Mapping[str, Any] | None = None,
+    env_overrides: Mapping[str, Any] | None = None,
 ) -> VecEnv:
     """Build a (possibly normalised) vectorised environment.
 
@@ -159,11 +160,13 @@ def build_vec_env(
         seed: Base seed (env ``i`` uses ``seed + i``).
         training: Training (random starts, stats update) vs evaluation mode.
         reward_overrides: Overrides for the ``reward`` section.
+        env_overrides: Variant-specific overrides for the ``environment`` section.
 
     Returns:
         The vectorised environment.
     """
-    env_overrides = None if training else {"random_start": False, "episode_length": None}
+    env_overrides = {**(env_overrides or {}),
+                     **({} if training else {"random_start": False, "episode_length": None})}
     fns = [
         make_env_factory(market, featureset, cfg, period_range, seed + i, env_overrides, reward_overrides)
         for i in range(n_envs)
@@ -480,6 +483,7 @@ def train_agent(
     log_stdout: bool = True,
     lagrangian: Mapping[str, Any] | None = None,
     save_checkpoints: bool = True,
+    env_overrides: Mapping[str, Any] | None = None,
 ) -> TrainResult:
     """Train a PPO agent on ``train_range`` with optional validation-based selection.
 
@@ -499,6 +503,7 @@ def train_agent(
         lagrangian: RCPO settings ``{cvar_target, drawdown_target, lr, lambda_max}``; the
             multipliers start from ``init_model_path``'s saved state when warm-starting.
         save_checkpoints: Write periodic checkpoints.
+        env_overrides: Variant-specific ``environment`` overrides (e.g. trade smoothing).
 
     Returns:
         :class:`TrainResult` with artifact paths.
@@ -513,7 +518,7 @@ def train_agent(
     run_name = run_name or run_dir.name
     save_config(cfg, run_dir / "config.yaml")
 
-    train_env = build_vec_env(market, featureset, cfg, train_range, n_envs, seed, True, reward_overrides)
+    train_env = build_vec_env(market, featureset, cfg, train_range, n_envs, seed, True, reward_overrides, env_overrides)
     layout = train_env.get_attr("observation_layout", indices=[0])[0]
 
     if init_model_path is not None and Path(init_model_path).exists():
@@ -551,7 +556,8 @@ def train_agent(
         ))
     eval_env = None
     if val_range is not None:
-        eval_env = build_vec_env(market, featureset, cfg, val_range, 1, seed + 10_000, False, reward_overrides)
+        eval_env = build_vec_env(market, featureset, cfg, val_range, 1, seed + 10_000, False, reward_overrides,
+                                 env_overrides)
         callbacks.append(
             EvalCallback(
                 eval_env,

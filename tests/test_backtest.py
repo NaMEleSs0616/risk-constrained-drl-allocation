@@ -248,3 +248,17 @@ def test_lagrangian_multiplier_update() -> None:
         cb.update([0.04, None])
     assert cb.lambdas == pytest.approx([3.0, 0.0])  # clipped at lambda_max; None skips
     assert cb.update([0.0, 0.0]) == pytest.approx([2.5, 0.0])  # slack constraint relaxes the multiplier
+
+
+def test_ew_constraint_targets_are_positive_and_causal() -> None:
+    from scripts.run_real_experiments import ew_constraint_targets
+
+    data = generate_synthetic_market(n_assets=3, n_periods=600, seed=2)
+    c1, d1 = ew_constraint_targets(data, (100, 400))
+    assert 0 < c1 < 0.2 and 0 < d1 < 0.5
+    shocked = data.close.copy()
+    shocked[400:] *= 0.1  # future crash must not change targets
+    from src.data import MarketData
+
+    later = MarketData(data.dates, data.assets, data.open, data.high, data.low, shocked, data.volume)
+    assert ew_constraint_targets(later, (100, 400)) == (c1, d1)

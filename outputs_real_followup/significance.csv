@@ -1,0 +1,10 @@
+strategy,versus,diff,ci_low,ci_high,p_value
+"PPO-S Smoothed execution (l1=0, l2=0)",Equal Weight (1/N),-0.043144,-0.155847,0.069063,0.475000
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",Equal Weight (1/N),-0.033489,-0.183496,0.106503,0.662500
+"PPO-RT RCPO 1/N-matched targets (l1=auto, l2=auto)",Equal Weight (1/N),-0.373031,-0.618785,-0.138931,0.002000
+"PPO-SRT Smoothed + RCPO 1/N-matched (l1=auto, l2=auto)",Equal Weight (1/N),-0.085599,-0.205676,0.032441,0.167500
+Buy & Hold (1/N),Equal Weight (1/N),0.012440,-0.019361,0.040168,0.395500
+MVO (Ledoit-Wolf),Equal Weight (1/N),0.106152,-0.384982,0.584585,0.676500
+Risk Parity (ERC),Equal Weight (1/N),-0.044164,-0.178658,0.084564,0.520000
+HRP,Equal Weight (1/N),-0.181735,-0.395596,0.027336,0.100000
+Untrained policy (1/(N+1) incl. cash),Equal Weight (1/N),0.008579,-0.002160,0.020880,0.139000

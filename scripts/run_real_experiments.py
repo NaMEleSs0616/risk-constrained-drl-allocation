@@ -82,6 +82,28 @@ class ChainJob:
     finetune_timesteps: int
 
 
+def ew_constraint_targets(market, train_range: tuple[int, int], scale: float = 1.0,
+                          window: int = 63, alpha: float = 0.95, episode: int = 252) -> tuple[float, float]:
+    """RCPO targets matched to the 1/N portfolio's risk inside a training window (no look-ahead).
+
+    Returns:
+        ``(cvar_target, drawdown_target)``: the 1/N portfolio's average rolling daily CVaR and
+        its average squared drawdown over consecutive ``episode``-day blocks (each block starts
+        from a fresh peak, as training episodes do), both multiplied by ``scale``.
+    """
+    from src.reward import drawdown_series, historical_cvar
+
+    s, e = train_range
+    px = market.close[s:e]
+    r = (px[1:] / px[:-1] - 1.0).mean(axis=1)
+    cvars = [historical_cvar(r[i - window:i], alpha) for i in range(window, len(r) + 1)]
+    dd2 = []
+    for b in range(0, len(r), episode):
+        nav = np.concatenate([[1.0], np.cumprod(1.0 + r[b:b + episode])])
+        dd2.append(np.mean(drawdown_series(nav) ** 2))
+    return scale * float(np.mean(cvars)), scale * max(float(np.mean(dd2)), 1e-5)
+
+
 def overlay_label(v: Variant) -> str:
     return f"{v.label} + vol target {v.vol_target_overlay:.0%}"
 
@@ -105,6 +127,13 @@ def run_chain(cfg: Mapping[str, Any], job: ChainJob, deterministic: bool, resume
         for fold in job.folds:
             run_dir = Path(job.root) / slugify(job.variant.key) / f"seed_{job.seed}" / f"fold_{fold.index:02d}"
             final = run_dir / "final_model.zip"
+            lagr = job.variant.lagrangian
+            if lagr and "ew_target_scale" in lagr:
+                c_t, d_t = ew_constraint_targets(market, fold.train_range, lagr["ew_target_scale"])
+                lagr = {**lagr, "cvar_target": c_t, "drawdown_target": d_t}
+                (run_dir).mkdir(parents=True, exist_ok=True)
+                (run_dir / "rcpo_targets.json").write_text(
+                    __import__("json").dumps({"cvar_target": c_t, "drawdown_target": d_t}))
             if not (resume and final.exists()):
                 result = train_agent(
                     cfg, market, featureset, fold.train_range, run_dir,
@@ -115,18 +144,21 @@ def run_chain(cfg: Mapping[str, Any], job: ChainJob, deterministic: bool, resume
                     run_name=f"{job.variant.key}_s{job.seed}_f{fold.index}",
                     seed=1000 * job.seed + fold.index,
                     log_stdout=False,
-                    lagrangian=job.variant.lagrangian,
+                    lagrangian=lagr,
                     save_checkpoints=False,
+                    env_overrides=job.variant.env_overrides,
                 )
                 final = result.model_path
             prev = final
             eval_range = fold.evaluation_range(market.n_periods)
-            env = make_eval_env(cfg, market, featureset, eval_range, job.variant.reward_overrides)
+            env = make_eval_env(cfg, market, featureset, eval_range, job.variant.reward_overrides,
+                                job.variant.env_overrides)
             policy = load_policy(final, env, None, deterministic)
             records[job.variant.label].append(
                 run_episode(env, action_fn=policy).assign(fold=fold.index, seed=job.seed))
             if job.variant.vol_target_overlay:
-                env = make_eval_env(cfg, market, featureset, eval_range, job.variant.reward_overrides)
+                env = make_eval_env(cfg, market, featureset, eval_range, job.variant.reward_overrides,
+                                    job.variant.env_overrides)
                 overlay = VolTargetOverlay(policy, job.variant.vol_target_overlay, periods_per_year=P)
                 records[overlay_label(job.variant)].append(
                     run_episode(env, weights_fn=overlay).assign(fold=fold.index, seed=job.seed))
