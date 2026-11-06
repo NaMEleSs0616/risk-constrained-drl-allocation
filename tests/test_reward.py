@@ -162,3 +162,79 @@ def test_turnover_penalty_and_lambda_setter() -> None:
     assert fn.config.lambda_cvar == 2.0 and fn.config.lambda_drawdown == 0.0
     with pytest.raises(ValueError):
         RewardConfig(lambda_turnover=-0.1)
+
+
+# --------------------------------------------------------------------- episode-level mean-CVaR objective
+def test_episode_cvar_objective_bonus_matches_rockafellar_uryasev() -> None:
+    from src.reward import EpisodeCVaRObjective
+
+    obj = EpisodeCVaRObjective(beta=2.0, alpha=0.8, window=10, min_episodes=5)
+    for g in (0.10, 0.05, -0.02, 0.08, 0.01):
+        assert obj(g) == 0.0                      # warm-up: no bonus, returns recorded
+    nu = obj.var()                                # lower 20% quantile of the 5 recorded returns
+    assert nu == pytest.approx(-0.02)
+    assert obj(0.03) == 0.0                       # above VaR: no bonus
+    assert obj(-0.12) == pytest.approx(2.0 / 0.2 * (-0.12 - nu))   # beta/(1-a) * (G - nu)
+    assert obj.n_episodes == 7
+
+
+def test_episode_cvar_gradient_identity_monte_carlo() -> None:
+    """E[min(G - VaR, 0)] / (1 - a) + VaR equals the lower-tail CVaR of G (score-function weight)."""
+    rng = np.random.default_rng(0)
+    g = rng.standard_t(4, 200_000) * 0.1
+    a = 0.9
+    nu = np.quantile(g, 1 - a)
+    ru = nu + np.mean(np.minimum(g - nu, 0.0)) / (1 - a)
+    tail_mean = g[g <= nu].mean()
+    assert ru == pytest.approx(tail_mean, rel=2e-3)
+
+
+def test_env_adds_terminal_cvar_bonus_only_when_attached(make_env) -> None:
+    from src.reward import EpisodeCVaRObjective
+
+    def run(env):
+        env.reset(seed=0)
+        rewards, infos, done = [], [], False
+        while not done:
+            _, r, term, trunc, info = env.step_with_weights(np.array([0.6, 0.3, 0.1]))
+            rewards.append(r)
+            infos.append(info)
+            done = term or trunc
+        return rewards, infos
+
+    base_r, _ = run(make_env(episode_length=30))
+    env = make_env(episode_length=30)
+    obj = EpisodeCVaRObjective(beta=1.0, alpha=0.5, window=8, min_episodes=1)
+    obj._returns.append(10.0)                     # VaR far above any episode return -> bonus < 0
+    env.set_episode_objective(obj)
+    r, infos = run(env)
+    assert r[:-1] == base_r[:-1]                  # only the terminal reward changes
+    g = infos[-1]["episode_log_return"]
+    assert g == pytest.approx(np.sum(np.log1p([i["portfolio_return"] for i in infos])), rel=1e-12)
+    assert r[-1] - base_r[-1] == pytest.approx(100.0 * 1.0 / 0.5 * (g - 10.0), rel=1e-9)
+    assert obj.n_episodes == 2
+
+
+def test_build_vec_env_shares_one_cvar_objective() -> None:
+    from src.data import generate_synthetic_market
+    from src.features import compute_features
+    from src.train import build_vec_env
+    from src.utils import load_config, resolve_path
+
+    cfg = load_config(resolve_path("config/synthetic_nextopen.yaml"))
+    market = generate_synthetic_market(n_periods=600, n_assets=3, seed=1)
+    fs = compute_features(market, cfg)
+    rng = (fs.warmup + 25, 590)
+    venv = build_vec_env(market, fs, cfg, rng, n_envs=3, seed=0, training=True,
+                         reward_overrides={"episode_cvar_beta": 1.0})
+    base = venv
+    while hasattr(base, "venv"):
+        base = base.venv
+    objs = {id(e.unwrapped.episode_objective) for e in base.envs}
+    assert len(objs) == 1 and None not in {e.unwrapped.episode_objective for e in base.envs}
+    ev = build_vec_env(market, fs, cfg, rng, n_envs=2, seed=0, training=False,
+                       reward_overrides={"episode_cvar_beta": 1.0})
+    base = ev
+    while hasattr(base, "venv"):
+        base = base.venv
+    assert all(e.unwrapped.episode_objective is None for e in base.envs)   # never in evaluation

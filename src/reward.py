@@ -147,6 +147,12 @@ class RewardConfig:
         clip: Symmetric bound on the scaled reward.
         cvar_floor_zero: Clamp CVaR at zero so all-gain windows give no bonus.
         lambda_turnover: Penalty per unit of one-way turnover (``sum |dw|``); 0 disables.
+        episode_cvar_beta: Weight ``beta`` of the episode-level mean-CVaR objective
+            ``E[G] + beta * CVaR_a(G)`` on the episode log return ``G`` (0 disables; see
+            :class:`EpisodeCVaRObjective`). Applies to training environments only.
+        episode_cvar_alpha: Tail level ``a`` of that objective (worst ``1 - a`` of episodes).
+        episode_cvar_window: Number of recent training episodes used to estimate the VaR.
+        episode_cvar_min_episodes: Episodes required before the CVaR term switches on.
     """
 
     alpha: float = 0.95
@@ -159,6 +165,10 @@ class RewardConfig:
     clip: float = 10.0
     cvar_floor_zero: bool = True
     lambda_turnover: float = 0.0
+    episode_cvar_beta: float = 0.0
+    episode_cvar_alpha: float = 0.9
+    episode_cvar_window: int = 256
+    episode_cvar_min_episodes: int = 16
 
     def __post_init__(self) -> None:
         if not 0.0 < self.alpha < 1.0:
@@ -171,6 +181,10 @@ class RewardConfig:
             raise ValueError("return_type must be 'log' or 'simple'")
         if self.clip <= 0:
             raise ValueError("clip must be positive")
+        if self.episode_cvar_beta < 0 or not 0.0 < self.episode_cvar_alpha < 1.0:
+            raise ValueError("episode_cvar_beta must be >= 0 and episode_cvar_alpha in (0, 1)")
+        if self.episode_cvar_window < 2 or self.episode_cvar_min_episodes < 1:
+            raise ValueError("episode_cvar_window must be >= 2 and episode_cvar_min_episodes >= 1")
 
     @classmethod
     def from_dict(cls, cfg: Mapping[str, Any]) -> "RewardConfig":
@@ -296,3 +310,51 @@ class RiskAdjustedReward:
             drawdown_penalty=dd_pen,
             turnover_penalty=to_pen,
         )
+
+
+class EpisodeCVaRObjective:
+    """Episode-level mean-CVaR objective via the CVaR policy gradient of Tamar et al. (2015).
+
+    The objective is ``J = E[G] + beta * CVaR_a(G)``, where ``G`` is an episode's total log
+    return and ``CVaR_a(G) = E[G | G <= VaR_a]`` is the mean of its worst ``1 - a`` fraction.
+    By the Rockafellar-Uryasev representation, at ``nu = VaR_a``
+
+        grad CVaR_a(G) = E[ min(G - nu, 0) * grad log P(tau) ] / (1 - a),
+
+    so adding the terminal reward ``beta / (1 - a) * min(G - nu, 0)`` to each episode makes
+    the policy-gradient estimate unbiased for ``grad J`` (with ``nu`` held at its current
+    estimate). ``nu`` is the empirical ``1 - a`` quantile of the most recent episodes of the
+    training run, shared by all of its environments; an episode's own return is recorded
+    only after its bonus is computed. Unlike the per-step rolling-CVaR penalty, this targets
+    the CVaR of the policy's return distribution, not the realised history of daily returns.
+    """
+
+    def __init__(self, beta: float, alpha: float = 0.9, window: int = 256, min_episodes: int = 16) -> None:
+        if beta < 0 or not 0.0 < alpha < 1.0 or window < 2 or min_episodes < 1:
+            raise ValueError("invalid EpisodeCVaRObjective parameters")
+        self.beta, self.alpha = float(beta), float(alpha)
+        self.min_episodes = int(min_episodes)
+        self._returns: deque[float] = deque(maxlen=int(window))
+
+    @classmethod
+    def from_config(cls, cfg: "RewardConfig") -> "EpisodeCVaRObjective":
+        return cls(cfg.episode_cvar_beta, cfg.episode_cvar_alpha, cfg.episode_cvar_window,
+                   cfg.episode_cvar_min_episodes)
+
+    @property
+    def n_episodes(self) -> int:
+        return len(self._returns)
+
+    def var(self) -> float | None:
+        """Current VaR estimate of the episode return (``None`` during warm-up)."""
+        if len(self._returns) < self.min_episodes:
+            return None
+        return float(np.quantile(np.asarray(self._returns), 1.0 - self.alpha, method="lower"))
+
+    def __call__(self, episode_log_return: float) -> float:
+        """Terminal bonus (in log-return units, <= 0) for a finished episode; then record it."""
+        g = float(np.nan_to_num(episode_log_return, nan=0.0, posinf=0.0, neginf=-10.0))
+        nu = self.var()
+        bonus = 0.0 if nu is None else self.beta / (1.0 - self.alpha) * min(g - nu, 0.0)
+        self._returns.append(g)
+        return bonus

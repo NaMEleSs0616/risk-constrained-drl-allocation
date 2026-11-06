@@ -158,6 +158,9 @@ def build_variants(ecfg: Mapping[str, Any], selected: Sequence[str] | None) -> l
                      "lambda_drawdown": float(spec.get("lambda_drawdown", 0.0))}
         if "lambda_turnover" in spec:
             overrides["lambda_turnover"] = float(spec["lambda_turnover"])
+        for key in ("episode_cvar_beta", "episode_cvar_alpha"):
+            if key in spec:
+                overrides[key] = float(spec[key])
         rcpo = spec.get("rcpo")
         out.append(Variant(
             key=k,

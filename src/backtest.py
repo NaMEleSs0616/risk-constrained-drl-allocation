@@ -69,6 +69,7 @@ def walk_forward_splits(
     expanding: bool = False,
     n_folds: int | None = None,
     min_train: int = 50,
+    anchor: str = "end",
 ) -> list[Fold]:
     """Generate chronological walk-forward folds.
 
@@ -84,8 +85,10 @@ def walk_forward_splits(
         step: Distance between consecutive test starts (defaults to ``test_window``).
         embargo: Gap between the end of training and the start of testing.
         expanding: Use all history from ``first_valid`` (anchored) instead of a rolling window.
-        n_folds: Number of end-anchored folds.
+        n_folds: Number of folds.
         min_train: Minimum acceptable training length.
+        anchor: With ``n_folds``: ``"end"`` (the last test window ends at ``n_periods``) or
+            ``"start"`` (the first test window starts as early as the training window allows).
 
     Returns:
         List of :class:`Fold`.
@@ -95,7 +98,12 @@ def walk_forward_splits(
     """
     step = int(step or test_window)
     folds: list[Fold] = []
-    if n_folds is not None:
+    if anchor not in ("end", "start"):
+        raise ValueError("anchor must be 'end' or 'start'")
+    if n_folds is not None and anchor == "start":
+        first = first_valid + train_window + embargo
+        starts = [first + k * step for k in range(n_folds) if first + k * step + test_window <= n_periods]
+    elif n_folds is not None:
         last_test_start = n_periods - test_window
         starts = [last_test_start - (n_folds - 1 - k) * step for k in range(n_folds)]
     else:
@@ -182,6 +190,7 @@ def run_episode(
     env: PortfolioEnv,
     action_fn: ActionFn | None = None,
     weights_fn: Callable[[PortfolioEnv], np.ndarray] | None = None,
+    initial_weights: np.ndarray | None = None,
 ) -> pd.DataFrame:
     """Run one deterministic episode over the env's full range.
 
@@ -192,6 +201,7 @@ def run_episode(
         env: Evaluation environment.
         action_fn: Maps an observation to an action.
         weights_fn: Maps the env to target weights.
+        initial_weights: Optional inherited starting book (default: all cash).
 
     Returns:
         Per-period records indexed by the date at which each return is realised.
@@ -203,7 +213,7 @@ def run_episode(
         raise ValueError("Provide exactly one of action_fn or weights_fn")
     if isinstance(weights_fn, BaselineStrategy):
         weights_fn.reset()
-    obs, _ = env.reset(options={"start_index": env.start_index})
+    obs, _ = env.reset(options={"start_index": env.start_index, "initial_weights": initial_weights})
     rows: list[dict[str, Any]] = []
     done = False
     while not done:

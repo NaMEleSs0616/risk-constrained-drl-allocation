@@ -25,6 +25,7 @@ from src.data import MarketData, load_market_data
 from src.environment import make_portfolio_env
 from src.features import FeatureSet, compute_features
 from src.models import build_policy_kwargs
+from src.reward import EpisodeCVaRObjective, RewardConfig
 from src.utils import (
     configure_logging,
     get_logger,
@@ -175,6 +176,13 @@ def build_vec_env(
     ppo_cfg = cfg["ppo"]
     use_subproc = ppo_cfg.get("vec_env", "dummy") == "subproc" and n_envs > 1
     venv: VecEnv = SubprocVecEnv(fns) if use_subproc else DummyVecEnv(fns)
+    rcfg = RewardConfig.from_dict({**cfg["reward"], **(reward_overrides or {})})
+    if training and rcfg.episode_cvar_beta > 0:
+        if use_subproc:
+            raise ValueError("the episode-level CVaR objective needs vec_env: dummy (shared VaR estimate)")
+        shared = EpisodeCVaRObjective.from_config(rcfg)
+        for e in venv.envs:  # type: ignore[attr-defined]
+            e.unwrapped.set_episode_objective(shared)
     venv = VecMonitor(venv)
     norm_obs = bool(ppo_cfg.get("normalize_obs", False))
     norm_rew = bool(ppo_cfg.get("normalize_reward", False))

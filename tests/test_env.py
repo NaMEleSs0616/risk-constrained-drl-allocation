@@ -484,3 +484,21 @@ def test_cash_and_weights_consistent_under_gaps(make_env, market_arrays) -> None
         assert info["gross_exposure"] <= 1.0 + 0.10   # fixed-share orders: leverage bounded by the gap size
         if term or trunc:
             break
+
+
+def test_initial_weights_inherited_book(make_env) -> None:
+    from src.backtest import run_episode
+    from src.baselines import EqualWeightStrategy
+
+    env = make_env(execution="next_open", friction=FULL_FRICTION)
+    w0 = np.array([0.3, 0.3, 0.3])
+    env.reset(options={"start_index": env.start_index, "initial_weights": w0})
+    assert env.nav == pytest.approx(env.config.initial_nav, rel=1e-12)   # no cost to inherit a book
+    np.testing.assert_allclose(env.current_weights, w0, rtol=1e-12)
+    # Starting from the 1/N book, buy-and-hold 1/N never trades (it only drifts).
+    n = env.n_assets
+    rec = run_episode(make_env(execution="next_open", friction=FULL_FRICTION),
+                      weights_fn=EqualWeightStrategy(rebalance_every=None), initial_weights=np.full(n, 1.0 / n))
+    assert rec["turnover"].iloc[0] < 1e-9 and rec["cost"].abs().max() < 1e-12
+    with pytest.raises(ValueError):
+        env.reset(options={"initial_weights": np.array([0.8, 0.8, 0.0])})

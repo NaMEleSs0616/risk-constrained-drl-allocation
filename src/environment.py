@@ -275,6 +275,7 @@ class PortfolioEnv(gym.Env):
         super().__init__()
         self.config = config or EnvConfig()
         self.reward_fn = RiskAdjustedReward(reward_config or RewardConfig())
+        self.episode_objective = None  # optional shared EpisodeCVaRObjective (training only)
         self.render_mode = render_mode
 
         self.features = np.asarray(features, dtype=np.float32)
@@ -496,7 +497,10 @@ class PortfolioEnv(gym.Env):
 
         Args:
             seed: RNG seed.
-            options: Optional ``{"start_index": int}`` to pin the start period.
+            options: Optional ``{"start_index": int}`` to pin the start period and
+                ``{"initial_weights": array}`` to start from an inherited book (asset
+                weights at the start close, cash is the residual; no cost is charged,
+                as for a position carried over from before the episode).
 
         Returns:
             ``(observation, info)``.
@@ -514,6 +518,14 @@ class PortfolioEnv(gym.Env):
             if max_start > self.start_index:
                 t0 = int(self.np_random.integers(self.start_index, max_start + 1))
         self._init_state(t0)
+        if options.get("initial_weights") is not None:
+            w = np.nan_to_num(np.asarray(options["initial_weights"], dtype=np.float64), nan=0.0)
+            if w.shape != (self.n_assets,) or (self.config.long_only and (w < 0).any()) \
+                    or np.abs(w).sum() > self.config.max_gross_leverage + 1e-9:
+                raise ValueError("initial_weights must be (n_assets,), feasible for the book constraints")
+            p0 = self.prices[t0]
+            self.holdings = w * self.cash / p0
+            self.cash = float(self.cash - self.holdings @ p0)
         return self._get_obs(), self._base_info()
 
     def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
@@ -635,11 +647,22 @@ class PortfolioEnv(gym.Env):
                 "lambda_drawdown": self.reward_fn.config.lambda_drawdown,
             }
         )
+        reward = rb.reward
         if terminated or truncated:
             info["episode_stats"] = self.episode_stats()
+            if self.episode_objective is not None:
+                g = float(np.sum(np.log1p(np.maximum(np.asarray(self._ep_returns), -0.99))))
+                bonus = self.episode_objective(g)
+                reward += self.reward_fn.config.reward_scale * bonus
+                info["episode_log_return"] = g
+                info["episode_cvar_bonus"] = bonus
         if self.render_mode == "human":
             self.render()
-        return self._get_obs(), rb.reward, terminated, truncated, info
+        return self._get_obs(), reward, terminated, truncated, info
+
+    def set_episode_objective(self, objective) -> None:
+        """Attach a (shared) episode-level objective whose terminal bonus is added to the reward."""
+        self.episode_objective = objective
 
     def set_reward_lambdas(self, lambda_cvar: float | None = None, lambda_drawdown: float | None = None) -> None:
         """Update the reward's penalty multipliers (called by the Lagrangian callback)."""

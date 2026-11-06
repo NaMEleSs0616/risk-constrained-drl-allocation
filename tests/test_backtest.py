@@ -274,3 +274,13 @@ def test_features_invariant_to_price_rescaling() -> None:
     c = np.array([0.4, 0.7, 1.9])[None, :]  # per-asset adjustment factors
     scaled = MarketData(data.dates, data.assets, data.open * c, data.high * c, data.low * c, data.close * c, data.volume)
     np.testing.assert_allclose(compute_features(data, cfg).values, compute_features(scaled, cfg).values, atol=1e-5)
+
+
+def test_walk_forward_start_anchor() -> None:
+    from src.backtest import walk_forward_splits
+
+    f = walk_forward_splits(5000, 150, train_window=1008, test_window=252, embargo=5, n_folds=3, anchor="start")
+    assert [x.test_start for x in f] == [150 + 1008 + 5 + k * 252 for k in range(3)]
+    assert all(x.train_range[0] >= 150 and x.train_range[1] + 5 <= x.test_start for x in f)
+    end = walk_forward_splits(5000, 150, train_window=1008, test_window=252, embargo=5, n_folds=3)
+    assert end[-1].test_end == 5000

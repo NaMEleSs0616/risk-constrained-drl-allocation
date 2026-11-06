@@ -181,6 +181,7 @@ def run(cfg: Mapping[str, Any], resume: bool = False, variant_keys: Sequence[str
         market.n_periods, first_valid_index(featureset, cfg),
         train_window=int(ecfg["train_window"]), test_window=test_window, step=test_window,
         embargo=int(ecfg.get("embargo", 0)), expanding=False, n_folds=int(ecfg["n_folds"]),
+        anchor=str(ecfg.get("fold_anchor", "end")),
     )
     logger.info("%d folds: first test %s, last test end %s", len(folds),
                 market.dates[folds[0].test_start].date(), market.dates[folds[-1].test_end - 1].date())
