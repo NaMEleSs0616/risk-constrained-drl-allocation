@@ -30,3 +30,6 @@ data/*.csv
 
 .DS_Store
 outputs_real_nextopen_aborted/
+outputs_real_nextopen/models/
+outputs_real_nextopen/*.pkl
+outputs_real_nextopen/*.log
