@@ -68,7 +68,7 @@ On 10 liquid multi-asset ETFs over 14 walk-forward years (Oct 2012 to Oct 2026),
 | P4 | vanilla A − 1/N | −0.53 [−0.79, −0.32] | significant |
 | P5 | gross A − gross 1/N (timing edge) | −0.09 [−0.30, 0.12] | not significant: **timing claim withdrawn** |
 
-- Tail-risk penalties lower CVaR and turnover but not the Sharpe ratio; 1/N de-levered to the same cash matches their drawdowns. No agent de-risks when volatility rises.
+- Tail-risk penalties lower CVaR and turnover but not the Sharpe ratio; 1/N de-levered to the same cash matches their drawdowns. No agent raises its cash weight when volatility rises (de-risking through the asset mix was not measured).
 - Partial-adjustment execution is the only design choice with a significant effect.
 - The untrained policy (equal weight on assets and cash) is as good as any trained agent.
 - **Correction:** versions 1–5 filled orders at the same close the features used, which is not tradable. That convention created the apparent pre-cost timing edge they reported. The legacy outputs (`outputs/`, `outputs_real/`, `outputs_real_followup/`) and paper (`paper/legacy/`) are kept, with configs pinned to `execution: close`.

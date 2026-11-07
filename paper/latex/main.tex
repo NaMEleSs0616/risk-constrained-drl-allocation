@@ -33,9 +33,9 @@
 \begin{document}
 \maketitle
 \begin{abstract}
-Deep reinforcement learning (DRL) portfolio allocators are often given tail-risk penalties in their reward to make them safer. We evaluate that practice for proximal policy optimisation (PPO) on ten liquid multi-asset ETFs over 14 annual walk-forward folds (October 2012 to October 2026, 3,527 test days). The simulator charges commission, half-spread and square-root market impact; every design is trained with five seeds; and every strategy, including classical rules, an untrained-policy control and an exposure-matched control, runs through the same simulator. Orders are decided after the close and filled at the next open. An audit found that earlier versions of this study filled orders at the same close that the features had already used, which cannot be traded. We corrected the simulator, reran the decisive experiments, and tested five comparisons fixed in an analysis plan committed before the rerun, using a two-level (seed and time-block) bootstrap with Holm correction.
+Deep reinforcement learning (DRL) portfolio allocators are often given tail-risk penalties in their reward to make them safer. We evaluate the most common form, per-step penalties on the agent\textquotesingle s rolling CVaR and drawdown, for proximal policy optimisation (PPO) on ten multi-asset ETFs over 14 annual walk-forward folds (2012--2026). Orders are decided after the close and filled at the next open, net of commission, spread and square-root impact, and every design is trained with five seeds. Earlier versions of this study filled orders at a close the policy had already observed; we corrected the simulator and tested five comparisons fixed in an analysis plan committed before the rerun. The test period had informed the earlier versions, so this is a reassessment under corrected execution, not an independent hold-out test.
 
-Under tradable execution, vanilla PPO earns a Sharpe ratio of 0.11 against 0.64 for equal weighting (difference $-$0.53, 95\% CI {[}$-$0.79, $-$0.32{]}). Calibrated CVaR and drawdown penalties lower daily CVaR and turnover but have no detectable effect on the Sharpe ratio (+0.06 {[}$-$0.12, 0.26{]}). Partial-adjustment execution is the only design choice with a significant effect (+0.49 {[}0.27, 0.74{]}); the best agent is then neither distinguishable from nor equivalent to 1/N ($-$0.08 {[}$-$0.23, 0.06{]}). The pre-cost timing edge reported in earlier versions does not survive ($-$0.09 {[}$-$0.30, 0.12{]}): it came from the non-tradable fill. No agent de-risks when volatility rises, 1/N de-levered to each agent\textquotesingle s cash level matches its drawdown, and the untrained policy, which holds equal weights in every asset and cash, is as good as any trained agent. No agent beats 1/N even with every cost removed, and the conclusions hold under other impact and fill assumptions, with from-scratch training, and in four independent simulated markets, one of them a bear market. The framework, tests, analysis plan and all outputs are public.
+In the pre-specified tests (two-level seed and time-block bootstrap, Holm correction), vanilla PPO trails equal weighting by 0.53 Sharpe (95\% CI {[}$-$0.79, $-$0.32{]}), the penalties have no detectable effect on the Sharpe ratio (+0.06 {[}$-$0.12, 0.26{]}), and slowing execution is the only design choice with a significant effect (+0.49 {[}0.27, 0.74{]}). The best agent is neither distinguishable from nor shown to be equivalent to 1/N ($-$0.08 {[}$-$0.23, 0.06{]}), and the pre-cost timing edge reported earlier, an artifact of the non-tradable fill, is withdrawn ($-$0.09 {[}$-$0.30, 0.12{]}). In secondary, uncorrected comparisons, the penalties lower daily CVaR and turnover, but by no more than holding the same cash in 1/N would; no agent raises its cash weight when volatility rises; and the untrained policy is as good as any trained agent. These results hold under other cost, impact and fill assumptions, with from-scratch training, and in four simulated markets. They concern this reward and state design, in which the CVaR penalty depends on return history the agent does not fully observe. Code, tests, analysis plan and outputs are public.
 \end{abstract}
 \noindent\textbf{Keywords:} deep reinforcement learning; proximal policy optimization; conditional value-at-risk; drawdown; market impact; execution timing; look-ahead bias; walk-forward validation; multiple testing; portfolio allocation
 
@@ -59,14 +59,16 @@ in a simulator with commission, half-spread and square-root market impact \cite{
 \textbf{Main finding.} They do not make the agents better than 1/N, and they make them only as much safer as holding cash would. How a PPO allocator trades governs its net performance far more than how its reward is shaped: slowing execution is the only design change with a significant effect. And the untrained network\textquotesingle s equal-weight-plus-cash prior is a benchmark no trained agent beats.
 \end{quote}
 
-\textbf{A correction.} Versions 1--5 of this study (circulated as \emph{Risk-Bounded Deep Reinforcement Learning for Dynamic Portfolio Allocation under Tail-Risk and Market Impact}) filled every order at the close of the same day whose close, range and volume the policy had just observed. That convention cannot be traded, and it inflated the fast-trading agents\textquotesingle{} results enough to create an apparent pre-cost timing edge over 1/N, which those versions reported as their most interesting positive finding. This version fixes the convention, reruns the decisive experiments with more seeds, and tests pre-specified hypotheses. The timing claim is withdrawn (\S{}5, \S{}6.4). We also drop ``risk-bounded'' from the title: fixed reward penalties carry no guarantee of bounded risk, and we found no evidence of one.
+\textbf{A correction.} Versions 1--5 of this study (circulated as \emph{Risk-Bounded Deep Reinforcement Learning for Dynamic Portfolio Allocation under Tail-Risk and Market Impact}) filled every order at the close of the same day whose close, range and volume the policy had just observed. That convention cannot be traded, and it inflated the fast-trading agents\textquotesingle{} results enough to create an apparent pre-cost timing edge over 1/N, which those versions reported as their most interesting positive finding. This version fixes the convention, reruns the decisive experiments with more seeds, and tests pre-specified hypotheses. The timing claim is withdrawn (\S{}5, \S{}6.4). The rerun pre-specifies the tests but not the research design: the same 2012--2026 test period had been examined in versions 1--5, so the corrected results are a methodological reassessment of those findings, not an independent confirmation (\S{}10). We also drop ``risk-bounded'' from the title: fixed reward penalties carry no guarantee of bounded risk, and we found no evidence of one.
+
+\textbf{Scope.} The conclusions concern PPO with per-step penalties on realised history, one multiplier setting, a fixed trading speed, five seeds and one ETF universe whose test period is not new. Section 10 lists what they do not cover, including risk-sensitive RL objectives, states that expose the penalised risk measure, de-risking through the asset mix, and genuinely unseen data.
 
 Our contributions are:
 
 \begin{enumerate}
 \tightlist
 \item
-  \textbf{An evaluation with tradable execution and pre-specified inference.} Decisions use data up to the close of day \emph{t}; orders are share quantities fixed at that close and filled at the open of \emph{t}+1. Five primary comparisons, the estimand (the expected out-of-sample Sharpe ratio of a newly trained agent), a two-level bootstrap over seeds and time, Holm correction, an equivalence margin and power calculations were committed before the rerun\textquotesingle s results were inspected.
+  \textbf{An evaluation with tradable execution and pre-specified inference.} Decisions use data up to the close of day \emph{t}; orders are share quantities fixed at that close and filled at the open of \emph{t}+1. Five primary comparisons, the estimand (the expected out-of-sample Sharpe ratio of a newly trained agent), a two-level bootstrap over seeds and time, Holm correction, an equivalence margin and power calculations were committed before the rerun\textquotesingle s results were inspected (the test period itself had been used before; \S{}10).
 \item
   \textbf{A documented execution-timing correction}: what the same-close convention does, how much it inflates the same trained policies, and regression tests that make it detectable (\S{}5).
 \item
@@ -166,7 +168,7 @@ Gross-of-cost returns add \(C_t/\mathrm{NAV}_t\) back to \(r_t\). Parameters: \(
 
 \[ \tilde w_t = w^-_t + \kappa_{\mathrm{tr}}\,(w^\star_t - w^-_t),\qquad \tilde w_t \leftarrow w^-_t \ \text{ if } \ \lVert \tilde w_t - w^-_t\rVert_1 < b , \]
 
-with \(\kappa_{\mathrm{tr}} = 0.1\) (a half-life of about a week) and \(b = 1\%\). The policy supplies the aim portfolio and the environment applies a fixed trading speed \cite{r46}.
+with \(\kappa_{\mathrm{tr}} = 0.1\) (a half-life of about a week) and \(b = 1\%\). Both are round values chosen when smoothed execution was introduced in an earlier version, and were not tuned; a faster or slower speed could do better or worse. The policy supplies the aim portfolio and the environment applies a fixed trading speed \cite{r46}.
 
 \subsection{Tail-risk measures}\label{tail-risk-measures}
 
@@ -180,7 +182,7 @@ with \(\alpha = 0.95\), a rolling window of \(W = 63\) realised returns and at l
 
 \[ R_t = k\cdot\operatorname{clip}_{[-10/k,\,10/k]}\Big( \log(1+r_t) \;-\; \lambda_1\big[\widehat{\mathrm{CVaR}}_{\alpha,t}\big]^+ \;-\; \lambda_2\, D_{t+1}^2 \Big),\qquad k = 100, \]
 
-and PPO maximises \(J(\pi) = \mathbb E_\pi\big[\sum_t \gamma^t R_t\big]\). \(J\) is the Lagrangian of a constrained MDP evaluated at fixed multipliers: nothing sets a target risk level, so the penalties move the optimum along the return/risk frontier by an amount that depends on their scale, and no bound on risk follows. The CVaR term depends on 63 days of the agent\textquotesingle s own returns, which the state summarises only through \(D_t\) and \(\hat\sigma^p_t\), so the reward is not Markov in \(s_t\). In daily data the return term is small (about \(3\times10^{-4}\) for 20\% volatility, against a daily CVaR of about \(2.5\times10^{-2}\)), so we use multipliers scaled to daily magnitudes, \((\lambda_1,\lambda_2) = (0.05, 0.5)\) (variant E); the legacy runs also used \(\lambda\in\{0,1\}\) (\S{}8). The clip rarely binds (\S{}7.4).
+and PPO maximises \(J(\pi) = \mathbb E_\pi\big[\sum_t \gamma^t R_t\big]\). \(J\) is the Lagrangian of a constrained MDP evaluated at fixed multipliers: nothing sets a target risk level, so the penalties move the optimum along the return/risk frontier by an amount that depends on their scale, and no bound on risk follows. The CVaR term depends on 63 days of the agent\textquotesingle s own returns, which the state summarises only through \(D_t\) and \(\hat\sigma^p_t\), so the reward is not Markov in \(s_t\): the agent cannot see its current CVaR estimate, or which past losses are about to enter or leave the window, and has to learn its response to tail risk from these proxies. The problem is therefore partially observed, which may limit how well a penalised agent can learn to manage tail risk. Our findings about the penalties apply to this reward-and-state design; a state containing the rolling CVaR and VaR, the return window itself or a recurrent summary of it would remove the mismatch, and we have not tested one (\S{}10). In daily data the return term is small (about \(3\times10^{-4}\) for 20\% volatility, against a daily CVaR of about \(2.5\times10^{-2}\)), so we use multipliers scaled to daily magnitudes, \((\lambda_1,\lambda_2) = (0.05, 0.5)\) (variant E). At these values a typical CVaR penalty (\(0.05\times2.5\times10^{-2}\approx1.3\times10^{-3}\)) and the drawdown penalty at a 7\% drawdown (\(0.5\times0.07^2\approx2.5\times10^{-3}\)) are several times the mean daily log return but an order of magnitude below its daily standard deviation (about \(1.3\times10^{-2}\)): large enough to move the optimum, small enough not to swamp the return signal. This is one point on the trade-off, set by this scale argument and not tuned on results; other multipliers could behave differently. The legacy runs also used \(\lambda\in\{0,1\}\), where the penalties dominate the return term (\S{}8). The clip rarely binds (\S{}7.4).
 
 \subsection{Policy architecture and optimisation}\label{policy-architecture-and-optimisation}
 
@@ -294,7 +296,7 @@ We report cumulative and annualised return, volatility, the Sharpe ratio (zero r
   \textbf{Decision rule.} If P5 is not significant after correction, the timing claim of versions 1--5 is withdrawn.
 \end{itemize}
 
-All other comparisons are secondary and uncorrected.
+All other comparisons, including every comparison of CVaR, drawdown and turnover, are secondary: they were not pre-specified as a family, are not corrected for multiplicity, and are exploratory.
 
 \begin{table}[!htbp]
 \centering\scriptsize
@@ -437,6 +439,8 @@ P5 & PPO-A $-$ 1/N (gross of costs) & $-$0.088 {[}$-$0.304, 0.116{]} & {[}$-$0.2
 
 Two primary tests are significant, and both concern execution: smoothing helps, and unsmoothed PPO loses to 1/N. Neither involves the tail-risk penalties.
 
+The four variants form a 2$\times$2 design (penalties $\times$ smoothing), but the plan tested only the two simple effects against vanilla PPO; the other simple effects and the interaction are not in the primary family. Smoothing also helps with penalties (SE $-$ E = +0.39, {[}0.22, 0.59{]}, secondary and uncorrected). With smoothing, the penalties change the Sharpe ratio by about $-$0.04 (SE $-$ S, the difference of their per-seed mean Sharpe ratios; no interval computed), so the implied interaction, (SE $-$ S) $-$ (E $-$ A), is about $-$0.10, also without an interval. A factorial analysis with multiplicity-adjusted main effects and interaction would be the natural primary analysis for a replication.
+
 \subsection{What the penalties do change}\label{what-the-penalties-do-change}
 
 \begin{table}[!htbp]
@@ -459,7 +463,7 @@ PPO-SE $-$ Untrained policy & $-$0.88 {[}$-$2.07, 0.30{]} & +0.7 {[}$-$4.5, 4.4{
 \end{adjustbox}
 \end{table}
 
-The penalties do change the agents\textquotesingle{} risk profile (Table~\ref{tab-secondary-no}, secondary and uncorrected). Relative to A, E lowers daily CVaR\textsubscript{95} by 0.20 percentage points ({[}0.07, 0.36{]}) and turnover by 8 points a day, and its maximum drawdown is 6 points lower (22.1\% against 28.2\%; interval {[}$-$13.4, +3.1{]}). Relative to 1/N, SE has a lower daily CVaR (by 0.15 points, {[}0.09, 0.22{]}) and a slightly lower annual return ($-$1.3 points, {[}$-$2.7, +0.1{]}). These reductions are what holding more cash produces (\S{}6.5): SE holds 15\% cash on average and E 10\%, against 7\% for A and none for 1/N.
+The penalties do change the agents\textquotesingle{} risk profile (Table~\ref{tab-secondary-no}, secondary and uncorrected). Relative to A, E lowers daily CVaR\textsubscript{95} by 0.20 percentage points ({[}0.07, 0.36{]}) and turnover by 8 points a day, and its maximum drawdown is 6 points lower (22.1\% against 28.2\%; interval {[}$-$13.4, +3.1{]}). Relative to 1/N, SE has a lower daily CVaR (by 0.15 points, {[}0.09, 0.22{]}) and a slightly lower annual return ($-$1.3 points, {[}$-$2.7, +0.1{]}). These reductions are what holding more cash produces (\S{}6.5): SE holds 15\% cash on average and E 10\%, against 7\% for A and none for 1/N. Because several metrics and pairs were examined without multiplicity correction, a single interval that excludes zero is weaker evidence than a primary test; what supports the reading is that the pattern (lower CVaR, lower turnover, more cash) recurs across the comparisons.
 
 \begin{table}[!htbp]
 \centering\scriptsize
@@ -560,7 +564,7 @@ PPO-SE $\cdot$ smoothed + calibrated CVaR + DD {($\lambda_1$=0.05, $\lambda_2$=0
 \end{adjustbox}
 \end{table}
 
-No agent de-risks when risk rises (Table~\ref{tab-derisk-no}). Every variant holds about the same cash on stress days as on calm days (within 1.1 points), and the correlation between an agent\textquotesingle s cash weight and its own trailing volatility is between $-$0.11 and $-$0.01 on average, the wrong sign for de-risking.
+No agent raises its cash weight when risk rises (Table~\ref{tab-derisk-no}). Every variant holds about the same cash on stress days as on calm days (within 1.1 points), and the correlation between an agent\textquotesingle s cash weight and its own trailing volatility is between $-$0.11 and $-$0.01 on average, the wrong sign for de-risking.
 
 \begin{table}[!htbp]
 \centering\scriptsize
@@ -570,16 +574,18 @@ No agent de-risks when risk rises (Table~\ref{tab-derisk-no}). Every variant hol
 \toprule
 Variant & Avg cash (\%) & Sharpe: agent vs control & MaxDD \%: agent vs control & Stress CVaR\textsubscript{95} \%: agent vs control & Worst stress day \%: agent vs control \\
 \midrule
-PPO-A $\cdot$ return only {($\lambda_1$=0, $\lambda_2$=0)} & 7.4 & 0.12 vs 0.64 (p=0.00) & 26.3 vs 18.4 & 2.72 vs 2.38 & $-$5.81 vs $-$5.20 \\
-PPO-E $\cdot$ calibrated CVaR + DD {($\lambda_1$=0.05, $\lambda_2$=0.5)} & 10.3 & 0.18 vs 0.64 (p=0.00) & 21.3 vs 17.8 & 2.35 vs 2.31 & $-$4.85 vs $-$5.04 \\
-PPO-S $\cdot$ smoothed execution {($\lambda_1$=0, $\lambda_2$=0)} & 10.6 & 0.61 vs 0.64 (p=0.62) & 19.0 vs 17.8 & 2.49 vs 2.30 & $-$5.12 vs $-$5.02 \\
-PPO-SE $\cdot$ smoothed + calibrated CVaR + DD {($\lambda_1$=0.05, $\lambda_2$=0.5)} & 14.9 & 0.58 vs 0.64 (p=0.28) & 18.9 vs 17.0 & 2.19 vs 2.19 & $-$4.27 vs $-$4.78 \\
+PPO-A $\cdot$ return only {($\lambda_1$=0, $\lambda_2$=0)} & 7.4 & 0.12 vs 0.64 (p \textless{} 0.001) & 26.3 vs 18.4 & 2.72 vs 2.38 & $-$5.81 vs $-$5.20 \\
+PPO-E $\cdot$ calibrated CVaR + DD {($\lambda_1$=0.05, $\lambda_2$=0.5)} & 10.3 & 0.18 vs 0.64 (p \textless{} 0.001) & 21.3 vs 17.8 & 2.35 vs 2.31 & $-$4.85 vs $-$5.04 \\
+PPO-S $\cdot$ smoothed execution {($\lambda_1$=0, $\lambda_2$=0)} & 10.6 & 0.61 vs 0.64 (p = 0.62) & 19.0 vs 17.8 & 2.49 vs 2.30 & $-$5.12 vs $-$5.02 \\
+PPO-SE $\cdot$ smoothed + calibrated CVaR + DD {($\lambda_1$=0.05, $\lambda_2$=0.5)} & 14.9 & 0.58 vs 0.64 (p = 0.28) & 18.9 vs 17.0 & 2.19 vs 2.19 & $-$4.27 vs $-$4.78 \\
 \bottomrule
 \end{tabular}
 \end{adjustbox}
 \end{table}
 
-The exposure-matched control makes the point concrete (Table~\ref{tab-delev-no}). 1/N scaled to SE\textquotesingle s average invested fraction (85\%) has a lower maximum drawdown than SE (17.0\% against 18.9\% on seed-averaged returns) and a Sharpe ratio that is not distinguishable from it; the same holds for S. On the 391 stress days, SE\textquotesingle s CVaR is no lower than the control\textquotesingle s (2.20\% against 2.19\%), though its worst stress day is milder ($-$4.3\% against $-$4.8\%).
+The exposure-matched control makes the point concrete (Table~\ref{tab-delev-no}). 1/N scaled to SE\textquotesingle s average invested fraction (85\%) has a lower maximum drawdown than SE (17.0\% against 18.9\% on seed-averaged returns) and a Sharpe ratio that is not distinguishable from it; the same holds for S. On the 391 stress days, SE\textquotesingle s CVaR is no lower than the control\textquotesingle s (2.19\% for both), though its worst stress day is milder ($-$4.3\% against $-$4.8\%).
+
+These diagnostics cover the cash channel only. An agent could also reduce risk without holding more cash, by rotating from equities and high yield into Treasuries, by concentrating less or by lowering its beta. We have not measured ex-ante portfolio volatility, beta, risk contributions or asset-class exposures conditional on market volatility, so we do not claim that no agent manages risk through its asset mix. The exposure-matched control limits what such a channel can have achieved in the tail: SE\textquotesingle s stress-period CVaR equals that of 1/N holding the same cash, so its asset mix did not lower tail losses on stress days beyond what its cash explains, although its worst stress day was milder.
 
 \begin{table}[!htbp]
 \centering\scriptsize
@@ -752,7 +758,7 @@ Versions 1--5 also ran variants that were not rerun: CVaR-only and drawdown-only
 \item
   \textbf{Validation-based checkpoint selection interacted with the penalties}, favouring early, less-trained checkpoints for penalised variants. This is why the ETF study uses no selection.
 \item
-  \textbf{Binding RCPO constraints did not produce state-dependent de-risking} (appendix Table~\ref{tab-lagrangian-fu}), and neither did any fixed penalty, the same conclusion as \S{}6.5.
+  \textbf{Binding RCPO constraints did not make the agents raise cash as risk rose} (appendix Table~\ref{tab-lagrangian-fu}), and neither did any fixed penalty, the same conclusion as \S{}6.5.
 \end{itemize}
 
 The legacy paper, its tables and its outputs are preserved in the repository (\texttt{paper/legacy/}, \texttt{outputs\_real/}, \texttt{outputs\_real\_followup/}, \texttt{outputs/}) with their configurations pinned to the same-close convention, so every earlier number remains reproducible.
@@ -769,7 +775,7 @@ Under tradable execution, the agents\textquotesingle{} problem is not that they 
 
 \subsection{Penalties as regularisers towards the prior}\label{penalties-as-regularisers-towards-the-prior}
 
-PPO\textquotesingle s softmax policy starts as a diversified, partly de-levered portfolio, and that portfolio is hard to beat. Return-only training pulls the policy towards concentrated, high-turnover allocations that fit the training window; drawdown penalties and smoothing make those excursions costly or slow, so the policy stays nearer its prior. That reading explains why the penalties reduce risk without improving the Sharpe ratio, why no agent de-risks with volatility, and why the untrained policy is the strongest ``agent'' in both the corrected and the legacy studies.
+PPO\textquotesingle s softmax policy starts as a diversified, partly de-levered portfolio, and that portfolio is hard to beat. Return-only training pulls the policy towards concentrated, high-turnover allocations that fit the training window; drawdown penalties and smoothing make those excursions costly or slow, so the policy stays nearer its prior. That reading explains why the penalties reduce risk without improving the Sharpe ratio, why no agent raises cash as volatility rises, and why the untrained policy is the strongest ``agent'' in both the corrected and the legacy studies.
 
 \subsection{What a better design would need}\label{what-a-better-design-would-need}
 
@@ -780,26 +786,38 @@ An allocator that adds value over 1/N under tradable execution would need a sign
 \begin{itemize}
 \tightlist
 \item
-  \textbf{Not an untouched hold-out.} The 2012--2026 test period informed design choices in versions 1--5. The analysis plan fixes the analysis of the rerun, not the history of the design.
+  \textbf{Not an untouched hold-out.} The 2012--2026 test period informed design choices in versions 1--5. The analysis plan pre-specifies the tests of the rerun, not the research design, which was developed while the same period was being examined. The corrected results are therefore a retrospective reassessment, not an independent confirmation; that needs data used in no version, such as a second universe with a new test period or a forward test of frozen models.
 \item
-  \textbf{One market-data universe.} Ten ETFs at daily frequency, chosen in 2026 from funds that still exist (survivorship and selection). Conclusions may differ for single stocks, futures, intraday data or other periods.
+  \textbf{Partially observed reward.} The CVaR penalty depends on return history that the state does not contain (\S{}3.4). The negative results for the penalties are results for this formulation: with the rolling CVaR and VaR, the return window or a recurrent risk summary in the state, a penalised agent might learn a different response to tail risk.
 \item
-  \textbf{Power.} With 5 seeds and 3,527 days, the primary tests can detect Sharpe differences of about 0.21--0.34 with 80\% power. Smaller effects of the penalties, or a small advantage or disadvantage of SE against 1/N, cannot be ruled out.
+  \textbf{Only the cash channel of de-risking is measured.} Risk reduction through the asset mix (duration, credit, concentration, beta) conditional on market volatility is not analysed (\S{}6.5).
+\item
+  \textbf{Power.} With 5 seeds and 3,527 days, the primary tests can detect Sharpe differences of about 0.21--0.34 with 80\% power. Non-significant results are absence of evidence, not evidence of no effect: none of the non-significant primary comparisons meets the $\pm$0.15 equivalence criterion, so smaller effects of the penalties, or a small advantage or disadvantage of SE against 1/N, cannot be ruled out. More seeds (10--20) would narrow the seed component of the intervals.
+\item
+  \textbf{Risk comparisons are secondary.} The comparisons of CVaR, drawdown and turnover, central to a study of risk penalties, are uncorrected and exploratory. A pre-specified family of risk hypotheses with multiplicity correction would make them confirmatory.
+\item
+  \textbf{The factorial design is not fully used.} The primary family tests two simple effects of the 2$\times$2 design; the main effects and the interaction of penalties and smoothing were not tested (\S{}6.2).
+\item
+  \textbf{Zero cash rate.} Cash earns nothing, and Sharpe ratios use a zero risk-free rate. A Treasury-bill yield would add about each strategy\textquotesingle s average cash weight times the yield to its return, which favours the agents that hold cash over fully invested 1/N: if the yield averaged about 2\% a year, SE (15\% cash) would gain about 0.3 percentage points a year relative to 1/N. Sharpe ratios in excess of the bill rate would be lower for every strategy. We have not rerun the comparisons with a historical bill-rate series.
+\item
+  \textbf{One market-data universe.} Ten U.S.-listed ETFs at daily frequency, chosen in 2026 from funds that still exist (survivorship and selection). The conclusions concern PPO with this architecture, a \$10m portfolio and this universe; they may differ for single stocks, futures, international markets, intraday data, larger portfolios (where impact matters more), other periods or other RL algorithms.
 \item
   \textbf{Costs and liquidity.} Cost parameters are plausible for institutional ETF trading, not calibrated to a desk. ADV is computed from back-adjusted prices, which understates early-sample dollar volume and so overstates early impact costs; this is conservative and mostly penalises high-turnover strategies. Fixed-share orders can leave small negative cash after gaps, financed at 0\%.
 \item
-  \textbf{Design choices not tuned.} PPO hyper-parameters, training budgets, penalty multipliers and the smoothing speed are fixed, not tuned per variant; warm-started chains accumulate training across folds (\S{}7.2 checks a subset). Each test fold starts in cash, so smoothed agents spend about a month per fold ramping up (\S{}7.1 tests an inherited book).
+  \textbf{Design choices not tuned.} PPO hyper-parameters, training budgets, the single penalty setting (\S{}3.4) and the smoothing speed (\S{}3.2) are fixed, not tuned per variant; warm-started chains accumulate training across folds (\S{}7.2 checks a subset). Each test fold starts in cash, so smoothed agents spend about a month per fold ramping up (\S{}7.1 tests an inherited book).
 \item
-  \textbf{Simulated markets.} Two seeds per variant and four folds per market; the generator is ours, and its latent alpha may be easier or harder to learn than real signals.
+  \textbf{Simulated markets.} Two seeds per variant and four folds per market; the generator is ours, and its latent alpha may be easier or harder to learn than real signals. They support the ETF results but do not confirm them independently.
 \item
   \textbf{No distributional or risk-sensitive RL baseline.} We test reward penalties, not methods that optimise a risk measure of the return-to-go \cite{r21,r54}.
+\item
+  \textbf{No independent reproduction.} The code, configurations, dependency lock file and output hashes are released so that the results can be reproduced, but no one outside this study has yet done so.
 \item
   \textbf{Stress labels} are named historical episodes dated with hindsight; they are used only for analysis.
 \end{itemize}
 
 \section{Conclusion}\label{s11}
 
-We evaluated tail-risk reward penalties for PPO portfolio allocators under tradable next-open execution, realistic frictions, walk-forward retraining, five training seeds and pre-specified inference. The penalties reduce tail risk relative to unpenalised PPO, but only as much as holding the same cash in 1/N would; they do not detectably improve the Sharpe ratio, and no agent learns to reduce risk when risk rises. Slowing execution is the only design change with a significant effect, and the best agent is then neither better than nor shown to be equivalent to equal weighting. A pre-cost timing edge reported in earlier versions of this study was an artifact of filling at a close the agent had already seen, and is withdrawn. For DRL allocators, the fill convention and the trading process deserve at least as much scrutiny as the reward, and the untrained network\textquotesingle s own prior is a benchmark worth reporting.
+We evaluated tail-risk reward penalties for PPO portfolio allocators under tradable next-open execution, realistic frictions, walk-forward retraining, five training seeds and pre-specified tests, on a test period that earlier versions of this study had already used. In the pre-specified tests, the penalties do not detectably change the Sharpe ratio, slowing execution is the only design change with a significant effect, and the best agent is then neither better than nor shown to be equivalent to equal weighting. A pre-cost timing edge reported in earlier versions was an artifact of filling at a close the agent had already seen, and is withdrawn. Exploratory comparisons suggest that the penalties lower tail risk only as much as holding the same cash in 1/N would, and that no agent raises its cash weight as risk rises. These conclusions concern per-step penalties on realised history that the agent only partly observes; risk-sensitive objectives, risk-aware states, de-risking through the asset mix and genuinely unseen data remain open. For DRL allocators, the fill convention and the trading process deserve at least as much scrutiny as the reward, and the untrained network\textquotesingle s own prior is a benchmark worth reporting.
 
 \section{Reproducibility}\label{s12}
 

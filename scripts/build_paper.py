@@ -173,7 +173,7 @@ def t_gross(res: Path, tid: str) -> str:
     for _, r in g.iterrows():
         test = ("–" if not math.isfinite(r["gross_diff_vs_ew"]) else
                 f"{fmt(r['gross_diff_vs_ew'], '+.3f')} [{fmt(r['gross_ci_low'], '.3f')}, {fmt(r['gross_ci_high'], '.3f')}]"
-                f" p={fmt(r['gross_p_value'], '.3f')}{stars(r['gross_p_value'])}")
+                f" p={pval(r['gross_p_value'])}{stars(r['gross_p_value'])}")
         rows.append([label(r["strategy"]), fmt(r["net_sharpe"], ".2f"),
                      pm(r["gross_sharpe"], r["gross_sharpe_std"], ".2f"), test,
                      fmt(r["corr_ew"], ".2f"), fmt(r["beta_ew"], ".2f"), fmt(r["te_vs_ew_pct"], ".1f")])
@@ -222,7 +222,7 @@ def t_sig(res: Path, tid: str) -> str:
     sig = pd.read_csv(res / "significance.csv")
     rows = [[label(r["strategy"]), label(r["versus"]), fmt(r["diff"], "+.3f"),
              f"[{fmt(r['ci_low'], '.3f')}, {fmt(r['ci_high'], '.3f')}]",
-             f"{fmt(r['p_value'], '.3f')}{stars(r['p_value'])}"] for _, r in sig.iterrows()]
+             f"{pval(r['p_value'])}{stars(r['p_value'])}"] for _, r in sig.iterrows()]
     return render(["Strategy", "Versus", "ΔSharpe", "95% CI", "p-value"], rows,
                   "Paired circular block-bootstrap tests of annualised Sharpe-ratio differences (block length 21 "
                   "days, 2,000 replications) on net returns; PPO series are the equal-weight average of seeds.",
@@ -329,7 +329,7 @@ def t_delev(res: Path, tid: str) -> str:
     rows = []
     for _, r in d.iterrows():
         rows.append([label(r["strategy"]), fmt(100 * r["avg_cash"], ".1f"),
-                     f"{fmt(r['sharpe'], '.2f')} vs {fmt(r['sharpe_delev'], '.2f')} (p={fmt(r['p_value'], '.2f')})",
+                     f"{fmt(r['sharpe'], '.2f')} vs {fmt(r['sharpe_delev'], '.2f')} (p{pcmp(r['p_value'])})",
                      f"{fmt(r['maxdd'], '.1f')} vs {fmt(r['maxdd_delev'], '.1f')}",
                      f"{fmt(r.get('stress_cvar'), '.2f')} vs {fmt(r.get('stress_cvar_delev'), '.2f')}",
                      f"{fmt(r.get('stress_worst'), '.2f')} vs {fmt(r.get('stress_worst_delev'), '.2f')}"])
@@ -357,6 +357,11 @@ def ci(est: float, lo: float, hi: float, spec: str = "+.3f") -> str:
 
 def pval(p: float) -> str:
     return "&lt;0.001" if p < 0.001 else fmt(p, ".3f")
+
+
+def pcmp(p: float) -> str:
+    """p-value with its relation sign, e.g. ' = 0.28' or ' &lt; 0.001'."""
+    return " &lt; 0.001" if p < 0.001 else f" = {fmt(p, '.2f')}"
 
 
 def t_primary(res: Path, tid: str) -> str:
