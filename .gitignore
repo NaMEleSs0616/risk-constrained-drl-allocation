@@ -33,3 +33,11 @@ outputs_real_nextopen_aborted/
 outputs_real_nextopen/models/
 outputs_real_nextopen/*.pkl
 outputs_real_nextopen/*.log
+outputs_real_nextopen/_smoke/
+outputs_real_nextopen/warmstart_control/models/
+outputs_real_nextopen/warmstart_control/*.pkl
+outputs_real_nextopen/warmstart_control/*.log
+outputs_syn_nextopen/*/models/
+outputs_syn_nextopen/*/*.pkl
+outputs_syn_nextopen/*/*.log
+outputs_syn_nextopen/*.log

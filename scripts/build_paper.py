@@ -29,7 +29,7 @@ import pandas as pd
 
 VARIANT_SHORT = {
     "A": "A · return only", "B": "B · CVaR only", "C": "C · drawdown only", "D": "D · CVaR + drawdown",
-    "E": "E · calibrated CVaR + DD", "T": "T · turnover penalty", "R": "R · RCPO (adaptive λ)",
+    "E": "E · calibrated CVaR + DD", "T": "T · turnover penalty", "R": "R · RCPO, adaptive λ",
     "S": "S · smoothed execution", "SE": "SE · smoothed + calibrated CVaR + DD",
     "RT": "RT · RCPO, 1/N-matched targets", "SRT": "SRT · smoothed + RCPO 1/N-matched",
 }
@@ -43,8 +43,10 @@ def label(name: str) -> str:
     m = re.match(r"PPO-([A-Z]+) .*?\((l1=[^,]+), (l2=[^)]+)\)(.*)", name)
     if m:
         letter, l1, l2, rest = m.groups()
-        lam = "adaptive λ" if "auto" in l1 else f"λ₁={l1[3:]}, λ₂={l2[3:]}"
         extra = " + vol-target overlay" if "vol target" in rest else ""
+        if "auto" in l1:  # RCPO variants: the short name already says "adaptive"/"RCPO"
+            return f"PPO-{VARIANT_SHORT.get(letter, letter)}{extra}"
+        lam = f"λ₁={l1[3:]}, λ₂={l2[3:]}"
         return f"PPO-{VARIANT_SHORT.get(letter, letter)}{extra} <span class='lam'>({lam})</span>"
     return html.escape(name)
 
@@ -337,7 +339,224 @@ def t_delev(res: Path, tid: str) -> str:
                   "average invested fraction, with the remainder in zero-yield cash.", tid)
 
 
+# ---------------------------------------------------------------------------
+# Corrected (next-open) study: pre-specified inference and robustness
+# ---------------------------------------------------------------------------
+def short_label(name: str) -> str:
+    """Compact strategy label without the λ annotation."""
+    m = re.match(r"PPO-([A-Z]+) ", name)
+    if m:
+        return f"PPO-{m.group(1)}"
+    return html.escape({"Equal Weight (1/N)": "1/N", "Untrained policy (1/(N+1) incl. cash)": "Untrained policy",
+                        "Risk Parity (ERC)": "ERC"}.get(name, name))
+
+
+def ci(est: float, lo: float, hi: float, spec: str = "+.3f") -> str:
+    return f"{fmt(est, spec)} [{fmt(lo, spec.lstrip('+'))}, {fmt(hi, spec.lstrip('+'))}]"
+
+
+def pval(p: float) -> str:
+    return "&lt;0.001" if p < 0.001 else fmt(p, ".3f")
+
+
+def t_primary(res: Path, tid: str) -> str:
+    d = pd.read_csv(res / "inference_primary.csv")
+    rows = []
+    for _, r in d.iterrows():
+        comp = f"{short_label(r['A'])} − {short_label(r['B'])}" + (" (gross of costs)" if r["gross"] else "")
+        verdict = ("significant" if r["significant_holm_0.05"] else "not significant") + f"; {r['equivalence']}"
+        rows.append([r["id"], comp, ci(r["estimate"], r["ci_low"], r["ci_high"]),
+                     f"[{fmt(r['ci90_low'], '.3f')}, {fmt(r['ci90_high'], '.3f')}]", fmt(r["mde80"], ".2f"),
+                     pval(r["p_value"]), pval(r["p_holm"]), verdict])
+    return render(["ID", "Comparison (Sharpe)", "Estimate [95% CI]", "90% CI", "MDE<sub>80</sub>", "p", "p (Holm)",
+                   "Verdict"], rows,
+                  "Pre-specified primary comparisons (ANALYSIS_PLAN.md, committed before the rerun's results were "
+                  "seen). Two-level bootstrap: training seeds resampled within each strategy, then days resampled in "
+                  "circular 21-day blocks shared by all series (2,000 replications). The estimand is the expected "
+                  "Sharpe ratio of a newly trained agent (mean of per-seed Sharpe ratios).", tid, num_from=2,
+                  notes="Holm adjustment over the five primary tests (family-wise α = 0.05). Equivalence: TOST with "
+                        "margin ±0.15 Sharpe, i.e. the 90% CI inside (−0.15, 0.15). “Inconclusive” means neither a "
+                        "significant difference nor equivalence. MDE<sub>80</sub>: smallest true difference detectable "
+                        "with 80% power, 2.80 × bootstrap SE.")
+
+
+def t_secondary(res: Path, tid: str) -> str:
+    d = pd.read_csv(res / "inference_secondary.csv")
+    pairs = [("PPO-E", "PPO-A"), ("PPO-S", "PPO-A"), ("PPO-SE", "PPO-E"), ("PPO-S", "Equal Weight (1/N)"),
+             ("PPO-SE", "Equal Weight (1/N)"), ("PPO-SE", "Risk Parity (ERC)"),
+             ("PPO-SE", "Untrained policy (1/(N+1) incl. cash)")]
+    metrics = [("ann_return_pct", "Ann. return (pp)", "+.2f"), ("maxdd_pct", "MaxDD (pp)", "+.1f"),
+               ("cvar95_pct", "CVaR<sub>95</sub> (pp)", "+.2f"), ("turnover_pct_day", "Turnover (pp/day)", "+.1f")]
+    rows = []
+    for a, b in pairs:
+        sub = d[d["A"].str.startswith(a + " ") & (d["B"].str.startswith(b + " ") | (d["B"] == b))]
+        if sub.empty:
+            continue
+        row = [f"{short_label(sub['A'].iloc[0])} − {short_label(sub['B'].iloc[0])}"]
+        for m, _, spec in metrics:
+            r = sub[sub["metric"] == m].iloc[0]
+            row.append(f"{ci(r['estimate'], r['ci_low'], r['ci_high'], spec)}{stars(r['p_value'])}")
+        rows.append(row)
+    return render(["Comparison"] + [h for _, h, _ in metrics], rows,
+                  "Secondary comparisons (not used for claims; uncorrected): differences in other metrics with 95% "
+                  "two-level bootstrap intervals.", tid,
+                  notes="* p &lt; 0.05, ** p &lt; 0.01, uncorrected. Negative MaxDD / CVaR differences mean the first "
+                        "strategy has less tail risk. The bootstrap distribution of a maximum-drawdown difference is "
+                        "strongly skewed, so its percentile interval and its centred p-value can disagree; both are "
+                        "reported as computed.")
+
+
+def _legacy_dirs(res: Path) -> list[Path]:
+    root = res.resolve().parent
+    return [root / "outputs_real", root / "outputs_real_followup"]
+
+
+def t_legacy(res: Path, tid: str) -> str:
+    new = pd.read_csv(res / "experiment_results_full.csv", index_col=0)
+    gnew = pd.read_csv(res / "gross_and_tracking.csv", index_col=0)
+    old, gold = [], []
+    for d in _legacy_dirs(res):
+        old.append(pd.read_csv(d / "experiment_results_full.csv", index_col=0))
+        gold.append(pd.read_csv(d / "gross_and_tracking.csv", index_col=0))
+    old = pd.concat(old)
+    old = old[~old.index.duplicated()]
+    gold = pd.concat(gold)
+    gold = gold[~gold.index.duplicated()]
+    rows = []
+    for name in new.index:
+        if name not in old.index:
+            continue
+        rows.append([label(name), fmt(old.at[name, "sharpe"], ".2f"), fmt(new.at[name, "sharpe"], ".2f"),
+                     fmt(new.at[name, "sharpe"] - old.at[name, "sharpe"], "+.2f"),
+                     fmt(gold.at[name, "gross_sharpe"], ".2f"), fmt(gnew.at[name, "gross_sharpe"], ".2f"),
+                     fmt(100 * old.at[name, "avg_daily_turnover"], ".1f"),
+                     fmt(100 * new.at[name, "avg_daily_turnover"], ".1f")])
+    return render(["Strategy", "Net Sharpe, same-close", "Net Sharpe, next-open", "Change",
+                   "Gross Sharpe, same-close", "Gross Sharpe, next-open", "Turnover %/day, same-close",
+                   "Turnover %/day, next-open"], rows,
+                  "The execution-timing correction. Same data, folds, test dates, features, frictions and PPO "
+                  "settings; only the fill convention differs. Same-close (v1–v5, not tradable): decide and fill at the "
+                  "close of t. Next-open (this version): decide after the close of t, fill at the open of t+1. "
+                  "Same-close PPO rows are from 3 seeds, next-open rows from 5 seeds (new training runs).", tid,
+                  group_break=sum(is_rl(n) for n in new.index if n in old.index))
+
+
+SCEN_LABELS = {"base": "Base", "cost_x0": "No costs", "cost_x0.5": "Costs ×0.5", "cost_x2": "Costs ×2",
+               "cost_x3": "Costs ×3", "spread_only": "No impact", "impact_x3": "Impact ×3",
+               "exec_next_close": "Fill next close", "exec_close": "Same close*", "init_1N": "Start from 1/N"}
+
+
+def t_sens(res: Path, tid: str) -> str:
+    if not (res / "sensitivity_levels.csv").exists():
+        return ""
+    lv = pd.read_csv(res / "sensitivity_levels.csv")
+    scen = [s for s in SCEN_LABELS if s in set(lv["scenario"])]
+    order = list(dict.fromkeys(lv["strategy"]))
+    order = [n for n in order if is_rl(n)] + [n for n in order if not is_rl(n)]
+    rows = []
+    for n in order:
+        g = lv[lv["strategy"] == n].set_index("scenario")
+        rows.append([label(n)] + [fmt(g.at[s, "sharpe"], ".2f") for s in scen])
+    return render(["Strategy"] + [SCEN_LABELS[s] for s in scen], rows,
+                  "Evaluation-only sensitivity: net Sharpe ratio of the same trained models (and of every baseline) "
+                  "re-run on the out-of-sample windows under perturbed execution assumptions. PPO: mean over 5 seeds.",
+                  tid, group_break=sum(is_rl(n) for n in order),
+                  notes="Costs ×k scales commission, half-spread and both impact coefficients; “No costs” also lifts "
+                        "the participation cap. “No impact” keeps fees and spread only. “Fill next close” adds a "
+                        "further session of delay. *“Same close” is the non-tradable legacy convention, shown only "
+                        "to measure how much it flatters the same policies. “Start from 1/N”: every fold inherits "
+                        "a 1/N book instead of starting in cash. Policies were trained under the base assumptions.")
+
+
+def t_sens_comp(res: Path, tid: str) -> str:
+    if not (res / "sensitivity_comparisons.csv").exists():
+        return ""
+    c = pd.read_csv(res / "sensitivity_comparisons.csv")
+    scen = [s for s in SCEN_LABELS if s in set(c["scenario"])]
+    ids = list(dict.fromkeys(c["id"]))
+    rows = []
+    for s in scen:
+        row = [SCEN_LABELS[s]]
+        for i in ids:
+            r = c[(c["scenario"] == s) & (c["id"] == i)].iloc[0]
+            row.append(f"{ci(r['estimate'], r['ci_low'], r['ci_high'], '+.2f')}{stars(r['p_value'])}")
+        rows.append(row)
+    names = {}
+    for i in ids:
+        r = c[c["id"] == i].iloc[0]
+        names[i] = f"{i}: {short_label(r['A'])} − {short_label(r['B'])}"
+    return render(["Scenario"] + [names[i] for i in ids], rows,
+                  "Do the comparisons survive the perturbations? Sharpe differences with 95% two-level bootstrap "
+                  "intervals (1,000 replications) under each scenario of the previous table.", tid,
+                  notes="* p &lt; 0.05, ** p &lt; 0.01, uncorrected (these are robustness checks, not new primary "
+                        "tests).")
+
+
+def t_warm(res: Path, tid: str) -> str:
+    path = res / "warmstart_control" / "warmstart_vs_scratch_summary.csv"
+    if not path.exists():
+        return ""
+    d = pd.read_csv(path)
+    names = {"sharpe": ("Sharpe", ".2f", "+.2f"), "ann_return_pct": ("Ann. return (%)", ".2f", "+.2f"),
+             "maxdd_pct": ("MaxDD (%)", ".1f", "+.1f"), "turnover_pct_day": ("Turnover (%/day)", ".1f", "+.1f")}
+    rows = []
+    for _, r in d.iterrows():
+        nm, spec, dspec = names[r["metric"]]
+        rows.append([label(r["variant"]), nm, fmt(r["warm_mean"], spec), fmt(r["scratch_mean"], spec),
+                     ci(r["diff_mean"], r["ci_lo"], r["ci_hi"], dspec), f"{int(r['n_scratch_better'])}/{int(r['n_pairs'])}"])
+    return render(["Variant", "Metric (per fold)", "Warm-started chain", "From scratch", "Scratch − warm [95% CI]",
+                   "Pairs where scratch is higher"], rows,
+                  "Warm-start control. Selected folds retrained from scratch with the fold-0 budget on exactly the same "
+                  "rolling training window and PPO seed, compared fold by fold with the warm-started chain. Intervals "
+                  "bootstrap the (seed, fold) pairs.", tid, num_from=2)
+
+
+def t_clip(res: Path, tid: str) -> str:
+    path = res / "reward_clipping.csv"
+    if not path.exists():
+        return ""
+    d = pd.read_csv(path)
+    g = d.groupby(["variant", "window"], sort=False).agg(n=("n", "sum"), k=("n_clipped", "sum"),
+                                                         lo=("min_raw", "min"), hi=("max_raw", "max")).reset_index()
+    rows = []
+    for v in dict.fromkeys(g["variant"]):
+        r = {w: g[(g["variant"] == v) & (g["window"] == w)].iloc[0] for w in ("train_replay", "oos")}
+        rows.append([label(v), f"{int(r['train_replay']['k'])} / {int(r['train_replay']['n']):,}",
+                     f"[{fmt(r['train_replay']['lo'], '.1f')}, {fmt(r['train_replay']['hi'], '.1f')}]",
+                     f"{int(r['oos']['k'])} / {int(r['oos']['n']):,}"])
+    return render(["Variant", "Clipped steps, training-window replay", "Range of unclipped reward (training replay)",
+                   "Clipped steps, out of sample"], rows,
+                  "How often the reward clip (±10 after scaling by 100) binds. Training-window replay: each fold's final "
+                  "policy run deterministically over its own training window in consecutive 252-day episodes "
+                  "(the training episode length), all seeds.", tid)
+
+
+def t_synrob(res: Path, tid: str) -> str:
+    path = res / "synthetic_markets_summary.csv"
+    if not path.exists():
+        return ""
+    d = pd.read_csv(path)
+    rows = []
+    for _, r in d.iterrows():
+        rows.append([html.escape(r["market"]), fmt(r["ew_sharpe"], ".2f"), fmt(r["untrained_sharpe"], ".2f"),
+                     pm(r["s_sharpe"], r["s_sharpe_sd"], ".2f"), pm(r["se_sharpe"], r["se_sharpe_sd"], ".2f"),
+                     ci(r["s_minus_ew"], r["s_minus_ew_lo"], r["s_minus_ew_hi"], "+.2f"),
+                     ci(r["se_minus_s"], r["se_minus_s_lo"], r["se_minus_s_hi"], "+.2f"),
+                     f"{fmt(r['ew_maxdd'], '.1f')} / {fmt(r['s_maxdd'], '.1f')} / {fmt(r['se_maxdd'], '.1f')}",
+                     f"{fmt(100 * r['s_cash_calm'], '.0f')} → {fmt(100 * r['s_cash_stress'], '.0f')}; "
+                     f"{fmt(100 * r['se_cash_calm'], '.0f')} → {fmt(100 * r['se_cash_stress'], '.0f')}"])
+    return render(["Market", "1/N Sharpe", "Untrained Sharpe", "PPO-S Sharpe", "PPO-SE Sharpe", "S − 1/N [95% CI]",
+                   "SE − S [95% CI]", "MaxDD %: 1/N / S / SE", "Cash % calm → stress: S; SE"], rows,
+                  "Independent simulated markets under next-open execution (4 annual walk-forward folds each, warm-"
+                  "started chains as in the ETF study, 2 training seeds per variant). Intervals are two-level "
+                  "bootstraps (2,000 replications).", tid, num_from=1,
+                  notes="Standard markets use the generator of §4.2 with new data seeds. The bear market has negative "
+                        "calm-regime drift (−8% to 0% a year) and stress twice as often, so holding cash pays.")
+
+
 TABLES: dict[str, Callable[[Path, str], str]] = {
+    "primary": t_primary, "secondary": t_secondary, "legacy": t_legacy, "sens": t_sens,
+    "senscomp": t_sens_comp, "warm": t_warm, "clip": t_clip, "synrob": t_synrob,
     "compare": t_compare, "delev": t_delev,
     "timing": t_timing,
     "main": t_main, "costs": t_costs, "gross": t_gross, "folds": t_folds, "regime": t_regime, "sig": t_sig,

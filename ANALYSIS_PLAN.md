@@ -105,3 +105,24 @@ from the aborted launch are kept in `outputs_real_nextopen_aborted/` and are not
 - The 2012–2026 test period informed design choices in earlier versions, so it
   is not an untouched hold-out. This plan fixes only the analysis.
 - Stress-episode labels are defined with hindsight but used only for analysis.
+
+## Addendum, after the primary results (not pre-specified)
+
+The following analyses were added on 2026-11-06, **after** the primary results above
+were known, in response to review. They are robustness checks and are reported as such:
+no new claim rests on them, and their p-values are uncorrected.
+
+- **Evaluation-only sensitivity** (`scripts/sensitivity_analysis.py`): the trained models
+  and baselines re-run on the same test windows with all costs ×0, ×0.5, ×2 and ×3; fees
+  and spread only (no impact); impact ×3; fills at the next close; the legacy same-close
+  fill (diagnostic only); and every fold starting from an inherited 1/N book. P1–P4 and
+  two further comparisons are recomputed in each scenario (two-level bootstrap, 1,000
+  replications).
+- **Reward clipping**: how often the ±10 clip binds, out of sample and when each fold's
+  final policy is replayed on its own training window in 252-day episodes.
+- **Warm start vs from scratch** (`scripts/warmstart_control.py`): PPO-S, seeds 0–2,
+  folds 4, 8 and 13 retrained from scratch with the fold-0 budget on the same window.
+- **Independent simulated markets** (`config/synthetic_nextopen.yaml`,
+  `scripts/run_robustness.sh`): three new standard markets (data seeds 101, 202, 303) and
+  one bear market (seed 404; calm drift −8% to 0% a year, stress entry probability doubled),
+  PPO-S and PPO-SE with 2 seeds each, 4 folds, next-open execution.

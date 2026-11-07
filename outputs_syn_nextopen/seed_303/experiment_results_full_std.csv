@@ -1,0 +1,9 @@
+strategy,n_folds,n_periods,n_invalid_returns,cumulative_return_pct,annualized_return_pct,annualized_vol_pct,sharpe,sortino,max_drawdown_pct,calmar,cvar_95_pct,hit_rate,avg_daily_turnover,annualized_turnover,total_cost_pct,total_cost_usd,skew,excess_kurtosis,worst_day_pct,worst_5d_pct
+"PPO-S Smoothed execution (l1=0, l2=0)",0.000000,0.000000,0.000000,6.783527,2.927801,1.440359,0.093778,0.105125,6.213183,0.020225,0.259725,0.003511,0.002455,0.618648,0.116950,7099.921319,0.558401,10.419391,2.493699,2.464630
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",0.000000,0.000000,0.000000,10.901267,3.716500,3.744847,0.085751,0.127988,12.022910,0.020234,0.675902,0.004213,0.008492,2.140101,0.307951,29261.941891,3.108408,73.037609,0.948816,0.776869
+Equal Weight (1/N),,,,,,,,,,,,,,,,,,,,
+Buy & Hold (1/N),,,,,,,,,,,,,,,,,,,,
+MVO (Ledoit-Wolf),,,,,,,,,,,,,,,,,,,,
+Risk Parity (ERC),,,,,,,,,,,,,,,,,,,,
+HRP,,,,,,,,,,,,,,,,,,,,
+Untrained policy (1/(N+1) incl. cash),,,,,,,,,,,,,,,,,,,,

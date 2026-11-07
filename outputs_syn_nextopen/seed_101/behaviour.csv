@@ -1,0 +1,9 @@
+strategy,avg_gross_exposure,avg_cash_weight,min_gross_exposure,avg_effective_n,max_single_weight,avg_daily_turnover
+"PPO-S Smoothed execution (l1=0, l2=0)",0.787990,0.212010,0.064476,3.737915,0.666502,0.040977
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",0.690257,0.309743,0.038968,4.185010,0.445676,0.028613
+Equal Weight (1/N),1.000094,-0.000094,0.999128,4.986770,0.261751,0.006254
+Buy & Hold (1/N),1.001147,-0.001147,0.999045,4.775848,0.383779,0.003973
+MVO (Ledoit-Wolf),0.999952,0.000048,0.996562,1.905242,1.000022,0.015665
+Risk Parity (ERC),1.000062,-0.000062,0.999638,4.444225,0.351466,0.006210
+HRP,1.000020,-0.000020,0.999514,3.142010,0.553698,0.006706
+Untrained policy (1/(N+1) incl. cash),0.833250,0.166750,0.795464,4.998815,0.191315,0.012365

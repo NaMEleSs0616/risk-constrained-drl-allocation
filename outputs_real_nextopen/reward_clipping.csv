@@ -1,0 +1,301 @@
+variant,seed,fold,window,n,n_clipped,min_raw,max_raw
+"PPO-A Vanilla (l1=0, l2=0)",0,0,train_replay,1007,0,-3.7089072025001264,8.135346398448206
+"PPO-A Vanilla (l1=0, l2=0)",0,1,train_replay,1007,0,-2.592835870279248,4.313331656741219
+"PPO-A Vanilla (l1=0, l2=0)",0,2,train_replay,1007,0,-2.7803687102173393,4.282586915739041
+"PPO-A Vanilla (l1=0, l2=0)",0,3,train_replay,1007,0,-2.9025515312147205,3.870745862054253
+"PPO-A Vanilla (l1=0, l2=0)",0,4,train_replay,1007,0,-2.7418256058339647,2.4375115153036444
+"PPO-A Vanilla (l1=0, l2=0)",0,5,train_replay,1007,0,-2.3811674455856995,2.228918223729886
+"PPO-A Vanilla (l1=0, l2=0)",0,6,train_replay,1007,0,-1.9046599383314975,2.321492211888204
+"PPO-A Vanilla (l1=0, l2=0)",0,7,train_replay,1007,0,-2.726122803769247,2.264926824308898
+"PPO-A Vanilla (l1=0, l2=0)",0,8,train_replay,1007,1,-10.616703554272751,7.597253277892876
+"PPO-A Vanilla (l1=0, l2=0)",0,9,train_replay,1007,0,-8.802597087558732,7.520636416134084
+"PPO-A Vanilla (l1=0, l2=0)",0,10,train_replay,1007,0,-7.602078358604998,7.615358348057362
+"PPO-A Vanilla (l1=0, l2=0)",0,11,train_replay,1007,1,-10.610361311666033,7.894620418204667
+"PPO-A Vanilla (l1=0, l2=0)",0,12,train_replay,1007,0,-3.1933858837654623,3.433614540095596
+"PPO-A Vanilla (l1=0, l2=0)",0,13,train_replay,1007,0,-3.1069106703966574,4.676171209181718
+"PPO-A Vanilla (l1=0, l2=0)",1,0,train_replay,1007,0,-3.089680740082762,9.073337710359187
+"PPO-A Vanilla (l1=0, l2=0)",1,1,train_replay,1007,0,-2.5182178501207333,6.2324038525343735
+"PPO-A Vanilla (l1=0, l2=0)",1,2,train_replay,1007,0,-2.4806713643199827,5.719848814143951
+"PPO-A Vanilla (l1=0, l2=0)",1,3,train_replay,1007,0,-2.072206024836037,4.0549500308295485
+"PPO-A Vanilla (l1=0, l2=0)",1,4,train_replay,1007,0,-2.840572557445656,2.8586222748194867
+"PPO-A Vanilla (l1=0, l2=0)",1,5,train_replay,1007,0,-2.697736075712274,1.8181847752670601
+"PPO-A Vanilla (l1=0, l2=0)",1,6,train_replay,1007,0,-2.448374148735043,2.231235249170003
+"PPO-A Vanilla (l1=0, l2=0)",1,7,train_replay,1007,0,-2.547560062501656,2.8905902382315327
+"PPO-A Vanilla (l1=0, l2=0)",1,8,train_replay,1007,0,-7.759927489054919,7.536589974615894
+"PPO-A Vanilla (l1=0, l2=0)",1,9,train_replay,1007,0,-7.260679813950041,7.592071407331677
+"PPO-A Vanilla (l1=0, l2=0)",1,10,train_replay,1007,0,-6.3822665839278425,7.693412100752872
+"PPO-A Vanilla (l1=0, l2=0)",1,11,train_replay,1007,0,-5.259769999755226,6.9658900191492386
+"PPO-A Vanilla (l1=0, l2=0)",1,12,train_replay,1007,0,-2.8134274035867284,4.214685329894008
+"PPO-A Vanilla (l1=0, l2=0)",1,13,train_replay,1007,0,-5.119141600783669,7.189130087846437
+"PPO-A Vanilla (l1=0, l2=0)",2,0,train_replay,1007,0,-6.073019179986617,8.773189675965257
+"PPO-A Vanilla (l1=0, l2=0)",2,1,train_replay,1007,0,-2.4130226294456345,4.538331103246254
+"PPO-A Vanilla (l1=0, l2=0)",2,2,train_replay,1007,0,-2.34409386314115,4.226016509664035
+"PPO-A Vanilla (l1=0, l2=0)",2,3,train_replay,1007,0,-3.58476185268553,3.9293311102628175
+"PPO-A Vanilla (l1=0, l2=0)",2,4,train_replay,1007,0,-2.2494282886828962,1.8456264313029707
+"PPO-A Vanilla (l1=0, l2=0)",2,5,train_replay,1007,0,-2.1651740336318657,1.971646996924441
+"PPO-A Vanilla (l1=0, l2=0)",2,6,train_replay,1007,0,-1.6218203484590101,1.9870344150389272
+"PPO-A Vanilla (l1=0, l2=0)",2,7,train_replay,1007,0,-2.3937699481589667,2.9902446929630493
+"PPO-A Vanilla (l1=0, l2=0)",2,8,train_replay,1007,0,-5.429542858398211,5.835338195245532
+"PPO-A Vanilla (l1=0, l2=0)",2,9,train_replay,1007,0,-5.35858369416153,6.254997022573764
+"PPO-A Vanilla (l1=0, l2=0)",2,10,train_replay,1007,0,-3.9487688961900234,5.606605042205301
+"PPO-A Vanilla (l1=0, l2=0)",2,11,train_replay,1007,0,-4.405305344210588,6.410854635964849
+"PPO-A Vanilla (l1=0, l2=0)",2,12,train_replay,1007,0,-3.47611227936948,5.636020234707785
+"PPO-A Vanilla (l1=0, l2=0)",2,13,train_replay,1007,0,-3.30394354426679,5.932891451388865
+"PPO-A Vanilla (l1=0, l2=0)",3,0,train_replay,1007,0,-3.4520585233848813,7.738201096828035
+"PPO-A Vanilla (l1=0, l2=0)",3,1,train_replay,1007,0,-3.1592692466330132,4.841268536121737
+"PPO-A Vanilla (l1=0, l2=0)",3,2,train_replay,1007,0,-2.730708081429328,4.267945623446906
+"PPO-A Vanilla (l1=0, l2=0)",3,3,train_replay,1007,0,-2.4619632866848296,4.032922795003936
+"PPO-A Vanilla (l1=0, l2=0)",3,4,train_replay,1007,0,-2.374646753236713,3.36892193143017
+"PPO-A Vanilla (l1=0, l2=0)",3,5,train_replay,1007,0,-1.706900767308701,2.0109350979263545
+"PPO-A Vanilla (l1=0, l2=0)",3,6,train_replay,1007,0,-1.8022128447305583,2.0482472737480832
+"PPO-A Vanilla (l1=0, l2=0)",3,7,train_replay,1007,0,-1.490852463917356,2.197335410566454
+"PPO-A Vanilla (l1=0, l2=0)",3,8,train_replay,1007,0,-5.64793104798098,2.817748250082396
+"PPO-A Vanilla (l1=0, l2=0)",3,9,train_replay,1007,0,-5.8053450623699705,2.432517757879596
+"PPO-A Vanilla (l1=0, l2=0)",3,10,train_replay,1007,0,-5.546907524884309,3.6543464103514625
+"PPO-A Vanilla (l1=0, l2=0)",3,11,train_replay,1007,0,-5.373098465989243,3.9387064331515087
+"PPO-A Vanilla (l1=0, l2=0)",3,12,train_replay,1007,0,-2.673119268536442,4.112861655959491
+"PPO-A Vanilla (l1=0, l2=0)",3,13,train_replay,1007,0,-3.4211571821670588,4.1907712460017965
+"PPO-A Vanilla (l1=0, l2=0)",4,0,train_replay,1007,1,-4.064507834182547,10.054678526458263
+"PPO-A Vanilla (l1=0, l2=0)",4,1,train_replay,1007,0,-2.804169229162148,5.480954743767974
+"PPO-A Vanilla (l1=0, l2=0)",4,2,train_replay,1007,0,-2.5073191368425523,5.269410815065565
+"PPO-A Vanilla (l1=0, l2=0)",4,3,train_replay,1007,0,-2.3492341228622173,3.9090065626618147
+"PPO-A Vanilla (l1=0, l2=0)",4,4,train_replay,1007,0,-2.0955632798396238,2.671658685474439
+"PPO-A Vanilla (l1=0, l2=0)",4,5,train_replay,1007,0,-1.7752940096490852,1.9318466744139042
+"PPO-A Vanilla (l1=0, l2=0)",4,6,train_replay,1007,0,-2.447888272811915,1.9321568885482052
+"PPO-A Vanilla (l1=0, l2=0)",4,7,train_replay,1007,0,-2.503027206735841,2.671334971037107
+"PPO-A Vanilla (l1=0, l2=0)",4,8,train_replay,1007,0,-8.587625173480575,7.4959850560682675
+"PPO-A Vanilla (l1=0, l2=0)",4,9,train_replay,1007,0,-6.4589963807703485,7.504337579651045
+"PPO-A Vanilla (l1=0, l2=0)",4,10,train_replay,1007,0,-5.641323985495112,7.540209333587682
+"PPO-A Vanilla (l1=0, l2=0)",4,11,train_replay,1007,0,-6.873259882400124,7.655627261044856
+"PPO-A Vanilla (l1=0, l2=0)",4,12,train_replay,1007,0,-3.438719211985032,5.636698713239667
+"PPO-A Vanilla (l1=0, l2=0)",4,13,train_replay,1007,0,-4.434431940926183,5.974027739418127
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",0,0,train_replay,1007,0,-5.733966195519721,7.1645967142134115
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",0,1,train_replay,1007,0,-2.0108152342067442,3.112489134967725
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",0,2,train_replay,1007,0,-2.2080919591006,3.1767767622230125
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",0,3,train_replay,1007,0,-3.356676019498516,3.072178918853773
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",0,4,train_replay,1007,0,-2.5512026307634708,1.8581871200372388
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",0,5,train_replay,1007,0,-1.8539642633555873,1.4094571565030949
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",0,6,train_replay,1007,0,-1.5959859102425211,1.5078992366434245
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",0,7,train_replay,1007,0,-1.488792535556913,1.8317929236057025
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",0,8,train_replay,1007,0,-5.360985501058862,2.379515152721402
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",0,9,train_replay,1007,0,-4.335375888092033,2.561337013294345
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",0,10,train_replay,1007,0,-4.122746282160596,2.9965636134582354
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",0,11,train_replay,1007,0,-4.178105615908832,3.2987166984063148
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",0,12,train_replay,1007,0,-2.310199863052875,3.2677694353912954
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",0,13,train_replay,1007,0,-2.787098627295467,3.467820943243121
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",1,0,train_replay,1007,0,-5.413683956019052,5.450554749366752
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",1,1,train_replay,1007,0,-2.7604606159325242,4.28051059327848
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",1,2,train_replay,1007,0,-2.7291257036606296,4.84487808497285
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",1,3,train_replay,1007,0,-2.5288022740931324,3.1353116095103433
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",1,4,train_replay,1007,0,-2.2439980706414406,2.1458210323117894
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",1,5,train_replay,1007,0,-2.282698072589572,1.6328058562685475
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",1,6,train_replay,1007,0,-1.7771033794814521,1.5584977796475916
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",1,7,train_replay,1007,0,-2.004450242853709,2.0288448113920867
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",1,8,train_replay,1007,1,-11.74897611633156,4.193511063435346
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",1,9,train_replay,1007,1,-10.392029059910342,3.716653507775853
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",1,10,train_replay,1007,1,-10.27953199889157,4.130608156827482
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",1,11,train_replay,1007,2,-10.774611658180886,4.582309545906547
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",1,12,train_replay,1007,0,-3.519008424549977,4.004915825923402
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",1,13,train_replay,1007,0,-3.6422261097122446,5.088953097058106
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",2,0,train_replay,1007,0,-5.243889975668015,4.011046446954108
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",2,1,train_replay,1007,0,-2.3694981238543766,2.6437761922088243
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",2,2,train_replay,1007,0,-2.205487493861958,2.220343804128814
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",2,3,train_replay,1007,0,-2.561557400378393,2.055345712488637
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",2,4,train_replay,1007,0,-2.5638624423471543,1.6997361668658093
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",2,5,train_replay,1007,0,-2.4691122231266895,1.5114770036127412
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",2,6,train_replay,1007,0,-1.8693060104584762,1.5296488820834455
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",2,7,train_replay,1007,0,-1.9429747151957177,1.640144144252488
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",2,8,train_replay,1007,0,-5.107731065659511,2.9102977838193653
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",2,9,train_replay,1007,0,-4.794510240762404,2.527224720365129
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",2,10,train_replay,1007,0,-4.731781925845007,3.2231544085357577
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",2,11,train_replay,1007,0,-4.514614921564624,3.7367286212638318
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",2,12,train_replay,1007,0,-2.398998202325184,3.579424881847087
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",2,13,train_replay,1007,0,-2.5633032745815116,4.130732451610486
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",3,0,train_replay,1007,0,-5.353366626917608,6.521503129074582
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",3,1,train_replay,1007,0,-3.4740910845301123,3.468567790201111
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",3,2,train_replay,1007,0,-3.287124283317909,3.418254510167245
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",3,3,train_replay,1007,0,-3.289381392178783,2.9008624811068358
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",3,4,train_replay,1007,0,-2.896480906726206,1.8535708420511972
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",3,5,train_replay,1007,0,-1.8306909758171075,1.470602951541807
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",3,6,train_replay,1007,0,-2.526646200077618,1.4066117609976667
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",3,7,train_replay,1007,0,-2.312413419962382,1.569588986483152
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",3,8,train_replay,1007,0,-8.450788019009048,4.1588664542817
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",3,9,train_replay,1007,0,-6.806106082148022,3.448442137880498
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",3,10,train_replay,1007,0,-6.8572283388799375,3.7180174139338593
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",3,11,train_replay,1007,0,-7.2541490006504965,3.125028558978361
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",3,12,train_replay,1007,0,-4.223437355358824,3.176410053149089
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",3,13,train_replay,1007,0,-4.158235482952461,3.268830382526231
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",4,0,train_replay,1007,0,-5.593516043990508,7.416170053706557
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",4,1,train_replay,1007,0,-3.1323359111521634,3.309207076800793
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",4,2,train_replay,1007,0,-2.6254073071256694,3.1259324412464324
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",4,3,train_replay,1007,0,-2.9324525994118504,2.957010322102032
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",4,4,train_replay,1007,0,-2.407557428787742,2.2825660195089075
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",4,5,train_replay,1007,0,-1.8469218718152554,1.7410693114196525
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",4,6,train_replay,1007,0,-1.9269524651489158,1.8286980050811659
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",4,7,train_replay,1007,0,-2.1731412355420914,1.4945215365530788
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",4,8,train_replay,1007,0,-6.149797448540816,3.2224510459958102
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",4,9,train_replay,1007,0,-4.755275393865355,3.781810411927116
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",4,10,train_replay,1007,0,-5.497151952926334,4.097747906323877
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",4,11,train_replay,1007,0,-5.107328203209116,4.273699011070153
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",4,12,train_replay,1007,0,-3.608095809792109,5.021523011354221
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",4,13,train_replay,1007,0,-3.4611975769495062,5.03479116048706
+"PPO-S Smoothed execution (l1=0, l2=0)",0,0,train_replay,1007,0,-5.046928776489298,4.813590288988809
+"PPO-S Smoothed execution (l1=0, l2=0)",0,1,train_replay,1007,0,-2.4308652974096936,1.8264320563071774
+"PPO-S Smoothed execution (l1=0, l2=0)",0,2,train_replay,1007,0,-2.327144499556174,1.797579265449473
+"PPO-S Smoothed execution (l1=0, l2=0)",0,3,train_replay,1007,0,-2.3532000091380016,1.681273769562572
+"PPO-S Smoothed execution (l1=0, l2=0)",0,4,train_replay,1007,0,-2.3646171249758257,1.7816505448606956
+"PPO-S Smoothed execution (l1=0, l2=0)",0,5,train_replay,1007,0,-2.2119871943181537,1.633056170967754
+"PPO-S Smoothed execution (l1=0, l2=0)",0,6,train_replay,1007,0,-2.032677144937808,1.6486077711341145
+"PPO-S Smoothed execution (l1=0, l2=0)",0,7,train_replay,1007,0,-1.6635326197725655,1.3459917389017155
+"PPO-S Smoothed execution (l1=0, l2=0)",0,8,train_replay,1007,0,-5.064460023480926,4.254214133472899
+"PPO-S Smoothed execution (l1=0, l2=0)",0,9,train_replay,1007,0,-4.6228209341996465,3.790032762909959
+"PPO-S Smoothed execution (l1=0, l2=0)",0,10,train_replay,1007,0,-4.283909304727656,3.661235564409097
+"PPO-S Smoothed execution (l1=0, l2=0)",0,11,train_replay,1007,0,-4.523401256204142,4.422057787066802
+"PPO-S Smoothed execution (l1=0, l2=0)",0,12,train_replay,1007,0,-2.875959237716006,4.065380931969317
+"PPO-S Smoothed execution (l1=0, l2=0)",0,13,train_replay,1007,0,-3.384874400383606,4.3994673088026035
+"PPO-S Smoothed execution (l1=0, l2=0)",1,0,train_replay,1007,0,-5.538531429509012,7.139255848106958
+"PPO-S Smoothed execution (l1=0, l2=0)",1,1,train_replay,1007,0,-2.8809389435132435,2.508993961141437
+"PPO-S Smoothed execution (l1=0, l2=0)",1,2,train_replay,1007,0,-2.9589397292457105,2.827073323807311
+"PPO-S Smoothed execution (l1=0, l2=0)",1,3,train_replay,1007,0,-2.8444736846147083,2.6918500519315716
+"PPO-S Smoothed execution (l1=0, l2=0)",1,4,train_replay,1007,0,-3.1455293221757525,2.397152892159234
+"PPO-S Smoothed execution (l1=0, l2=0)",1,5,train_replay,1007,0,-2.519841508329724,1.8288626552461698
+"PPO-S Smoothed execution (l1=0, l2=0)",1,6,train_replay,1007,0,-2.21768074518265,1.7447246692932004
+"PPO-S Smoothed execution (l1=0, l2=0)",1,7,train_replay,1007,0,-1.910202309389423,1.492777904992417
+"PPO-S Smoothed execution (l1=0, l2=0)",1,8,train_replay,1007,0,-6.1937125267728215,4.739439132879778
+"PPO-S Smoothed execution (l1=0, l2=0)",1,9,train_replay,1007,0,-7.521392044492672,5.443854369987941
+"PPO-S Smoothed execution (l1=0, l2=0)",1,10,train_replay,1007,0,-5.300176393893483,4.50763164599225
+"PPO-S Smoothed execution (l1=0, l2=0)",1,11,train_replay,1007,0,-5.300181370993052,4.791952252921893
+"PPO-S Smoothed execution (l1=0, l2=0)",1,12,train_replay,1007,0,-3.0347402511890857,3.843183386529462
+"PPO-S Smoothed execution (l1=0, l2=0)",1,13,train_replay,1007,0,-3.1223703096343316,3.9996275645362114
+"PPO-S Smoothed execution (l1=0, l2=0)",2,0,train_replay,1007,0,-4.629933169894284,5.412838174392429
+"PPO-S Smoothed execution (l1=0, l2=0)",2,1,train_replay,1007,0,-2.872745912205855,2.8082811368234513
+"PPO-S Smoothed execution (l1=0, l2=0)",2,2,train_replay,1007,0,-2.9887462537298988,2.7602730966375475
+"PPO-S Smoothed execution (l1=0, l2=0)",2,3,train_replay,1007,0,-3.5979674899542657,2.2842035363145783
+"PPO-S Smoothed execution (l1=0, l2=0)",2,4,train_replay,1007,0,-3.483347734474022,2.209688853481304
+"PPO-S Smoothed execution (l1=0, l2=0)",2,5,train_replay,1007,0,-3.3462371945645573,1.846352084063656
+"PPO-S Smoothed execution (l1=0, l2=0)",2,6,train_replay,1007,0,-3.144297915453266,1.6921194453382384
+"PPO-S Smoothed execution (l1=0, l2=0)",2,7,train_replay,1007,0,-1.6553769897096036,1.4912287953419603
+"PPO-S Smoothed execution (l1=0, l2=0)",2,8,train_replay,1007,0,-5.593667274021509,4.972982283598271
+"PPO-S Smoothed execution (l1=0, l2=0)",2,9,train_replay,1007,0,-5.491707929342874,4.840761364590609
+"PPO-S Smoothed execution (l1=0, l2=0)",2,10,train_replay,1007,0,-4.980501461364994,4.615308166087995
+"PPO-S Smoothed execution (l1=0, l2=0)",2,11,train_replay,1007,0,-5.257937389780272,4.946589867249238
+"PPO-S Smoothed execution (l1=0, l2=0)",2,12,train_replay,1007,0,-3.089762963120641,3.559181762147554
+"PPO-S Smoothed execution (l1=0, l2=0)",2,13,train_replay,1007,0,-3.061285486692439,4.039417516486861
+"PPO-S Smoothed execution (l1=0, l2=0)",3,0,train_replay,1007,0,-4.381782517289158,5.261560807849511
+"PPO-S Smoothed execution (l1=0, l2=0)",3,1,train_replay,1007,0,-2.5389985484873785,2.138884461798908
+"PPO-S Smoothed execution (l1=0, l2=0)",3,2,train_replay,1007,0,-3.034885190253259,2.0379468296984937
+"PPO-S Smoothed execution (l1=0, l2=0)",3,3,train_replay,1007,0,-2.542177582936082,2.102888556343894
+"PPO-S Smoothed execution (l1=0, l2=0)",3,4,train_replay,1007,0,-2.758725984650502,2.1530315944919223
+"PPO-S Smoothed execution (l1=0, l2=0)",3,5,train_replay,1007,0,-2.30320575987321,1.7831408607873658
+"PPO-S Smoothed execution (l1=0, l2=0)",3,6,train_replay,1007,0,-2.212547408511327,1.7973210986833927
+"PPO-S Smoothed execution (l1=0, l2=0)",3,7,train_replay,1007,0,-2.1665315380562102,1.2928544796894204
+"PPO-S Smoothed execution (l1=0, l2=0)",3,8,train_replay,1007,0,-4.672602539420615,4.530737172299327
+"PPO-S Smoothed execution (l1=0, l2=0)",3,9,train_replay,1007,0,-5.386089211677628,4.702743264921986
+"PPO-S Smoothed execution (l1=0, l2=0)",3,10,train_replay,1007,0,-5.389754203684147,4.924730776789694
+"PPO-S Smoothed execution (l1=0, l2=0)",3,11,train_replay,1007,0,-4.16045064609987,4.367865475105438
+"PPO-S Smoothed execution (l1=0, l2=0)",3,12,train_replay,1007,0,-2.851152370923882,4.225496745382396
+"PPO-S Smoothed execution (l1=0, l2=0)",3,13,train_replay,1007,0,-2.8945349620173437,4.184785622616781
+"PPO-S Smoothed execution (l1=0, l2=0)",4,0,train_replay,1007,0,-4.771498562725917,5.28388259023772
+"PPO-S Smoothed execution (l1=0, l2=0)",4,1,train_replay,1007,0,-3.004644461812309,2.1667995441063956
+"PPO-S Smoothed execution (l1=0, l2=0)",4,2,train_replay,1007,0,-2.994311441364328,2.188585076569626
+"PPO-S Smoothed execution (l1=0, l2=0)",4,3,train_replay,1007,0,-2.728023274376237,2.086937727566347
+"PPO-S Smoothed execution (l1=0, l2=0)",4,4,train_replay,1007,0,-2.6388563906074567,2.0379848828177742
+"PPO-S Smoothed execution (l1=0, l2=0)",4,5,train_replay,1007,0,-2.084995411650439,1.575454397487049
+"PPO-S Smoothed execution (l1=0, l2=0)",4,6,train_replay,1007,0,-2.024567482423368,1.624528895328915
+"PPO-S Smoothed execution (l1=0, l2=0)",4,7,train_replay,1007,0,-2.0769376899849803,1.5923043248989737
+"PPO-S Smoothed execution (l1=0, l2=0)",4,8,train_replay,1007,0,-6.624043466218089,4.6023407149852344
+"PPO-S Smoothed execution (l1=0, l2=0)",4,9,train_replay,1007,0,-5.872958354858573,3.6986031323133806
+"PPO-S Smoothed execution (l1=0, l2=0)",4,10,train_replay,1007,0,-5.960697464678715,3.8031182169803746
+"PPO-S Smoothed execution (l1=0, l2=0)",4,11,train_replay,1007,0,-5.1104462386651335,3.884859225950158
+"PPO-S Smoothed execution (l1=0, l2=0)",4,12,train_replay,1007,0,-3.0357679575683276,3.9538313033036836
+"PPO-S Smoothed execution (l1=0, l2=0)",4,13,train_replay,1007,0,-2.9827615245947534,3.8743653755529435
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",0,0,train_replay,1007,0,-4.458659567586909,3.4572840420099893
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",0,1,train_replay,1007,0,-2.5736121276006942,1.8567295127346513
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",0,2,train_replay,1007,0,-2.641670622395602,2.021930299296993
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",0,3,train_replay,1007,0,-3.672583747325639,2.059239923360084
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",0,4,train_replay,1007,0,-3.7749214091044205,1.7917566038746828
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",0,5,train_replay,1007,0,-3.494246391929165,1.5204237417914621
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",0,6,train_replay,1007,0,-3.5775112257440735,1.6439137875149612
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",0,7,train_replay,1007,0,-1.9420628393917485,1.2737097435830065
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",0,8,train_replay,1007,0,-5.301044291626733,2.5153332329886124
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",0,9,train_replay,1007,0,-5.1075167786519,2.445380688613174
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",0,10,train_replay,1007,0,-4.516392039774642,2.3762478156382274
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",0,11,train_replay,1007,0,-4.787618993877979,3.8004526042683664
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",0,12,train_replay,1007,0,-3.9164939120624407,3.5302012834662966
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",0,13,train_replay,1007,0,-4.28802062448269,3.738933200438538
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",1,0,train_replay,1007,0,-6.68845244446558,4.99862938589337
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",1,1,train_replay,1007,0,-2.8050457200608454,1.8185594249587262
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",1,2,train_replay,1007,0,-2.705893469374434,1.8630057202221728
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",1,3,train_replay,1007,0,-2.6977216503958403,1.9579972980076923
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",1,4,train_replay,1007,0,-2.6735812066552174,1.9846593702636466
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",1,5,train_replay,1007,0,-2.323709103236633,1.5594474667462275
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",1,6,train_replay,1007,0,-1.815398459303701,1.507658475719135
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",1,7,train_replay,1007,0,-1.6071339307886907,1.2161891054015386
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",1,8,train_replay,1007,0,-8.564413707160746,3.3040826239725756
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",1,9,train_replay,1007,0,-8.73755305945594,3.254038811581514
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",1,10,train_replay,1007,0,-7.449845093654413,3.547739258976685
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",1,11,train_replay,1007,0,-6.689563988766237,3.4806635157867776
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",1,12,train_replay,1007,0,-4.269424051163739,3.669496006821612
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",1,13,train_replay,1007,0,-4.11780265814235,3.848575510051445
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",2,0,train_replay,1007,0,-3.4216554835977617,3.8182349504665223
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",2,1,train_replay,1007,0,-2.771945576788112,1.8735819624275938
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",2,2,train_replay,1007,0,-2.965344821577275,1.9287824674240044
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",2,3,train_replay,1007,0,-3.729234781993898,1.7889490132423185
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",2,4,train_replay,1007,0,-4.03206736882543,1.9602126906576534
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",2,5,train_replay,1007,0,-3.701080007905702,1.4456374661682219
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",2,6,train_replay,1007,0,-3.455772130476991,1.439993313103347
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",2,7,train_replay,1007,0,-1.8800069547332807,1.1673809611816819
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",2,8,train_replay,1007,0,-5.2135560605602915,1.6848822351759056
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",2,9,train_replay,1007,0,-4.834223834893024,1.757778991759644
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",2,10,train_replay,1007,0,-4.292468059913666,2.1327832389386314
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",2,11,train_replay,1007,0,-4.984150196025109,3.3189628130856423
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",2,12,train_replay,1007,0,-3.2616905244399876,3.078772218225882
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",2,13,train_replay,1007,0,-3.26605682636434,3.112797908976205
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",3,0,train_replay,1007,0,-2.9841106654843985,3.3202430117778423
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",3,1,train_replay,1007,0,-2.982627392651226,2.026198663102018
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",3,2,train_replay,1007,0,-2.5950935447400876,1.747154708348749
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",3,3,train_replay,1007,0,-2.721143312595691,1.7951521760813403
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",3,4,train_replay,1007,0,-2.7550091357792024,1.7746584592827745
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",3,5,train_replay,1007,0,-1.8176759526376478,1.6618771789560294
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",3,6,train_replay,1007,0,-1.6855803648842396,1.616091613320984
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",3,7,train_replay,1007,0,-1.4717184307168945,1.1579559531757582
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",3,8,train_replay,1007,0,-4.861019246478361,1.8557744870196335
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",3,9,train_replay,1007,0,-4.976386699710103,2.846275453750433
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",3,10,train_replay,1007,0,-5.650703863037395,2.625826958235373
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",3,11,train_replay,1007,0,-5.292571503966748,3.2195187342046414
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",3,12,train_replay,1007,0,-4.337430985969498,3.340332396016562
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",3,13,train_replay,1007,0,-4.002527778857234,3.3150708665750894
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",4,0,train_replay,1007,0,-5.224743623008579,5.503610899156077
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",4,1,train_replay,1007,0,-3.097125758690932,1.9431973974714911
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",4,2,train_replay,1007,0,-3.016666354647727,1.9198777279674766
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",4,3,train_replay,1007,0,-2.62461662388041,1.8698334089937132
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",4,4,train_replay,1007,0,-2.663961858002602,1.977204243609644
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",4,5,train_replay,1007,0,-2.390017483435733,1.5016031455729444
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",4,6,train_replay,1007,0,-2.140212218647883,1.4983036168878097
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",4,7,train_replay,1007,0,-1.6470319771127542,1.2710974726662758
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",4,8,train_replay,1007,0,-7.6158404861828854,3.074014433534707
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",4,9,train_replay,1007,0,-6.526083124923759,2.8960773523584082
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",4,10,train_replay,1007,0,-6.581576727245195,3.0481345547130028
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",4,11,train_replay,1007,0,-6.52491709955928,3.7537281203490673
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",4,12,train_replay,1007,0,-3.911049297115358,3.7724443238740446
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",4,13,train_replay,1007,0,-3.6137509814124793,3.660089763058013
+"PPO-A Vanilla (l1=0, l2=0)",0,-1,oos,3527,0,-8.188622700573882,6.912381540318761
+"PPO-A Vanilla (l1=0, l2=0)",1,-1,oos,3527,0,-7.925590155597249,7.130629584675931
+"PPO-A Vanilla (l1=0, l2=0)",2,-1,oos,3527,0,-7.245860038090488,5.733515952277593
+"PPO-A Vanilla (l1=0, l2=0)",3,-1,oos,3527,0,-6.060421254440581,3.5754844746016587
+"PPO-A Vanilla (l1=0, l2=0)",4,-1,oos,3527,0,-7.049073982689394,7.501031695391671
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",0,-1,oos,3527,0,-5.599112578635864,2.891968990039162
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",1,-1,oos,3527,0,-8.937433978272297,4.193832355244952
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",2,-1,oos,3527,0,-6.073922060508688,3.946861928104196
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",3,-1,oos,3527,0,-8.447997836466289,3.7418849459549026
+"PPO-E Full calibrated (l1=0.05, l2=0.5)",4,-1,oos,3527,0,-6.694359011390014,3.988429000212145
+"PPO-S Smoothed execution (l1=0, l2=0)",0,-1,oos,3527,0,-4.521159971636656,4.349894097688986
+"PPO-S Smoothed execution (l1=0, l2=0)",1,-1,oos,3527,0,-5.033123799442858,4.235201085242559
+"PPO-S Smoothed execution (l1=0, l2=0)",2,-1,oos,3527,0,-5.300454446755431,4.8990230032598125
+"PPO-S Smoothed execution (l1=0, l2=0)",3,-1,oos,3527,0,-5.811072512014509,4.737964615232855
+"PPO-S Smoothed execution (l1=0, l2=0)",4,-1,oos,3527,0,-5.931073353418437,3.99453864284297
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",0,-1,oos,3527,0,-6.041126769744767,3.228703572330178
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",1,-1,oos,3527,0,-6.568136733615085,3.33405623470518
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",2,-1,oos,3527,0,-5.342773995891389,3.1203390592539906
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",3,-1,oos,3527,0,-4.9321178022617875,3.9249144148510355
+"PPO-SE Smoothed + calibrated penalties (l1=0.05, l2=0.5)",4,-1,oos,3527,0,-6.5092825944043895,3.4434227064924756

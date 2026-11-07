@@ -61,7 +61,7 @@ PREAMBLE = r"""\documentclass[11pt]{article}
 
 \title{%TITLE%}
 \author{%AUTHOR%}
-\date{October 2026}
+\date{November 2026}
 
 \begin{document}
 \maketitle
@@ -116,7 +116,7 @@ def preprocess(main: str) -> tuple[str, str, str, str, str, list[str]]:
     body = re.sub(r"\\\[(.*?)\\\]", lambda m: "$$" + m.group(1) + "$$", body, flags=re.S)
     body = re.sub(r"\\\((.*?)\\\)", lambda m: "$" + m.group(1) + "$", body, flags=re.S)
     # Findings / callouts -> plain paragraphs.
-    body = re.sub(r'<div class="finding"><span class="n">(R\d)</span><p>', r"<p><b>\1.</b> ", body)
+    body = re.sub(r'<div class="finding"><span class="n">([RP]\d+)</span><p>', r"<p><b>\1.</b> ", body)
     body = body.replace('<div class="callout">', "<blockquote>").replace("</div>", "</blockquote>") \
         if False else re.sub(r'<div class="callout">(.*?)</div>', r"<blockquote>\1</blockquote>", body, flags=re.S)
     body = re.sub(r"</p></div>", "</p>", body)
